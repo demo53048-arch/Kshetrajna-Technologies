@@ -3,6 +3,7 @@ import {
   getAuth,
   signInWithRedirect,
   signInWithPopup,
+  reauthenticateWithPopup,
   GoogleAuthProvider,
   onAuthStateChanged,
   getRedirectResult,
@@ -38,6 +39,7 @@ provider.addScope("https://www.googleapis.com/auth/gmail.compose");
 provider.addScope("https://www.googleapis.com/auth/gmail.send");
 provider.addScope("https://www.googleapis.com/auth/gmail.readonly");
 provider.addScope("https://www.googleapis.com/auth/gmail.modify");
+provider.setCustomParameters({ prompt: "consent" });
 
 // Verify firestore connection on load as requested by standard guidelines
 async function testConnection() {
@@ -56,7 +58,7 @@ let isSigningIn = false;
 let cachedAccessToken: string | null = typeof window !== "undefined" ? sessionStorage.getItem("google_access_token") : null;
 
 export const initAuth = (
-  onAuthSuccess?: (user: User, token: string) => void,
+  onAuthSuccess?: (user: User, token: string | null) => void,
   onAuthFailure?: () => void
 ) => {
   // Check for redirect result from Google sign-in
@@ -70,6 +72,8 @@ export const initAuth = (
             sessionStorage.setItem("google_access_token", credential.accessToken);
           }
           if (onAuthSuccess) onAuthSuccess(result.user, credential.accessToken);
+        } else if (onAuthSuccess) {
+          onAuthSuccess(result.user, null);
         }
       }
     })
@@ -82,7 +86,7 @@ export const initAuth = (
     if (user) {
       // If the user is signed in, allow the app to render the authenticated UI.
       // Token may be handled separately via getRedirectResult.
-      if (onAuthSuccess) onAuthSuccess(user, cachedAccessToken || "");
+      if (onAuthSuccess) onAuthSuccess(user, cachedAccessToken || null);
       return;
     }
 
@@ -115,6 +119,37 @@ export const googleSignIn = async (): Promise<{ user: User; accessToken: string 
 
 export const getAccessToken = async (): Promise<string | null> => {
   return cachedAccessToken;
+};
+
+export const refreshGoogleAccessToken = async (): Promise<string | null> => {
+  if (cachedAccessToken) {
+    return cachedAccessToken;
+  }
+  if (!auth.currentUser) {
+    return null;
+  }
+  try {
+    const result = await reauthenticateWithPopup(auth.currentUser, provider);
+    const credential = GoogleAuthProvider.credentialFromResult(result);
+    const accessToken = credential?.accessToken || null;
+    if (accessToken) {
+      cachedAccessToken = accessToken;
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem("google_access_token", accessToken);
+      }
+    }
+    return accessToken;
+  } catch (error) {
+    console.error("Failed to refresh Google access token:", error);
+    return null;
+  }
+};
+
+export const clearCachedAccessToken = () => {
+  cachedAccessToken = null;
+  if (typeof window !== "undefined") {
+    sessionStorage.removeItem("google_access_token");
+  }
 };
 
 export const logout = async () => {

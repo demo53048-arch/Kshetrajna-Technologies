@@ -14,6 +14,8 @@ import {
   googleSignIn, 
   logout, 
   initAuth,
+  refreshGoogleAccessToken,
+  clearCachedAccessToken,
   deleteMessageFromDB, 
   deleteApplicationFromDB, 
   updateQuoteStatusInDB, 
@@ -356,13 +358,24 @@ export default function AdminPanel() {
 
   // Gmail API: Read recent user emails (genuine Google API communication)
   const fetchRecentEmails = async () => {
-    if (!accessToken) return;
+    let token = accessToken;
+    if (!token) {
+      token = await refreshGoogleAccessToken();
+      if (token) {
+        setAccessToken(token);
+      }
+    }
+    if (!token) {
+      setGmailMessages([{ id: "error", snippet: "⚠ Gmail API Error: No active OAuth token found. Please sign in again.", sizeEstimate: 0 }]);
+      return;
+    }
+
     setGmailLoading(true);
     setGmailMessages([]);
     try {
       const res = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=5", {
         headers: {
-          "Authorization": `Bearer ${accessToken}`
+          "Authorization": `Bearer ${token}`
         }
       });
 
@@ -375,7 +388,13 @@ export default function AdminPanel() {
           const apiMsg = errJson?.error?.message || errJson?.error_description;
           if (apiMsg) friendlyMsg = apiMsg;
         } catch { /* Not JSON */ }
-        setGmailMessages([{ id: "error", snippet: `⚠ Gmail API Error: ${friendlyMsg}`, sizeEstimate: 0 }]);
+        if (res.status === 401 || /invalid.*credentials/i.test(friendlyMsg)) {
+          clearCachedAccessToken();
+          setAccessToken(null);
+          setGmailMessages([{ id: "error", snippet: "⚠ Gmail API Error: invalid or expired token. Please sign in again.", sizeEstimate: 0 }]);
+        } else {
+          setGmailMessages([{ id: "error", snippet: `⚠ Gmail API Error: ${friendlyMsg}`, sizeEstimate: 0 }]);
+        }
         return;
       }
 
@@ -384,7 +403,7 @@ export default function AdminPanel() {
         const list = [];
         for (const m of data.messages) {
           const detailRes = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages/${m.id}?format=minimal`, {
-            headers: { "Authorization": `Bearer ${accessToken}` }
+            headers: { "Authorization": `Bearer ${token}` }
           });
           const detail = await detailRes.json();
           list.push(detail);
@@ -416,6 +435,20 @@ export default function AdminPanel() {
     setMailSending(true);
     setMailStatus("Framing and sealing SMTP packages...");
 
+    let token = accessToken;
+    if (!token) {
+      token = await refreshGoogleAccessToken();
+      if (token) {
+        setAccessToken(token);
+      }
+    }
+    if (!token) {
+      alert("No authorized active access token. Please sign in with Google.");
+      setMailStatus("⚠ Gmail API Error: No active OAuth token available. Please sign in again.");
+      setMailSending(false);
+      return;
+    }
+
     try {
       // Craft Base64 RFC-2822 Web Compliant raw mail packages
       const rawMessage = [
@@ -445,7 +478,7 @@ export default function AdminPanel() {
       const res = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages/send", {
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${accessToken}`,
+          "Authorization": `Bearer ${token}`,
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
@@ -473,7 +506,14 @@ export default function AdminPanel() {
           // Not JSON - use raw text
           if (errText) friendlyError = errText;
         }
-        setMailStatus(`⚠ Gmail API Error: ${friendlyError}`);
+        // 401 = token expired or invalid — clear it so re-auth banner appears
+        if (res.status === 401 || /invalid.*auth|invalid.*credential|token.*expired/i.test(friendlyError)) {
+          clearCachedAccessToken();
+          setAccessToken(null);
+          setMailStatus("⚠ OAuth token expired or invalid. Click \"Authorize Gmail API\" above to re-authenticate.");
+        } else {
+          setMailStatus(`⚠ Gmail API Error: ${friendlyError}`);
+        }
       }
     } catch (err: any) {
       console.error(err);
