@@ -1,0 +1,210 @@
+{
+  "entities": {
+    "ContactMessage": {
+      "title": "ContactMessage",
+      "description": "Form inquiries submitted via the Contact Us page",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier of the message"
+        },
+        "name": {
+          "type": "string",
+          "description": "Sender full name"
+        },
+        "email": {
+          "type": "string",
+          "description": "Sender email address"
+        },
+        "phone": {
+          "type": "string",
+          "description": "Sender contact phone"
+        },
+        "company": {
+          "type": "string",
+          "description": "Sender or guest organization"
+        },
+        "subject": {
+          "type": "string",
+          "description": "Dispatcher message subject line"
+        },
+        "message": {
+          "type": "string",
+          "description": "Full text contents of message"
+        },
+        "date": {
+          "type": "string",
+          "description": "Timestamp string of creation"
+        }
+      },
+      "required": ["id", "name", "email", "subject", "message", "date"]
+    },
+    "Application": {
+      "title": "Application",
+      "description": "Candidate job applications applied via Careers page",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier"
+        },
+        "jobId": {
+          "type": "string",
+          "description": "Referenced job ID"
+        },
+        "jobTitle": {
+          "type": "string",
+          "description": "Referenced job title"
+        },
+        "candidateName": {
+          "type": "string",
+          "description": "Full legal name"
+        },
+        "candidateEmail": {
+          "type": "string",
+          "description": "Candidate primary email"
+        },
+        "candidatePhone": {
+          "type": "string",
+          "description": "Candidate contact number"
+        },
+        "experienceYears": {
+          "type": "string",
+          "description": "Dropdown select level of depth"
+        },
+        "coverLetter": {
+          "type": "string",
+          "description": "Short candidacy cover statement"
+        },
+        "resumeFileName": {
+          "type": "string",
+          "description": "Primary uploaded CV doc title"
+        },
+        "date": {
+          "type": "string",
+          "description": "Filing date"
+        }
+      },
+      "required": ["id", "jobId", "jobTitle", "candidateName", "candidateEmail", "candidatePhone", "experienceYears", "resumeFileName", "date"]
+    },
+    "Quote": {
+      "title": "Quote",
+      "description": "Custom project quotes requested from founders",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique quotation ID"
+        },
+        "clientName": {
+          "type": "string",
+          "description": "Representative full name"
+        },
+        "clientEmail": {
+          "type": "string",
+          "description": "Primary communication email"
+        },
+        "clientPhone": {
+          "type": "string",
+          "description": "Primary communication phone"
+        },
+        "companyName": {
+          "type": "string",
+          "description": "Organization and brand name"
+        },
+        "serviceArea": {
+          "type": "string",
+          "description": "Targeted expertise system of Kshetrajna"
+        },
+        "timeline": {
+          "type": "string",
+          "description": "Desired completion speed"
+        },
+        "estimatedBudget": {
+          "type": "string",
+          "description": "Select range of price capability"
+        },
+        "requirements": {
+          "type": "string",
+          "description": "Detailed description of product specs"
+        },
+        "status": {
+          "type": "string",
+          "description": "Internal workflow state"
+        },
+        "date": {
+          "type": "string",
+          "description": "Submittal date"
+        }
+      },
+      "required": ["id", "clientName", "clientEmail", "serviceArea", "requirements", "status", "date"]
+    },
+    "StartedProject": {
+      "title": "StartedProject",
+      "description": "Project starters mapped to fixed engagement plans",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Generated unique enrollment key"
+        },
+        "planId": {
+          "type": "string",
+          "description": "Fixed plan catalog ID"
+        },
+        "planName": {
+          "type": "string",
+          "description": "Full plan display name"
+        },
+        "clientName": {
+          "type": "string",
+          "description": "Applicant full name"
+        },
+        "clientEmail": {
+          "type": "string",
+          "description": "Primary email"
+        },
+        "clientPhone": {
+          "type": "string",
+          "description": "Primary mobile number"
+        },
+        "companyName": {
+          "type": "string",
+          "description": "Company registration"
+        },
+        "additionalFeatures": {
+          "type": "string",
+          "description": "Add-on comments"
+        },
+        "status": {
+          "type": "string",
+          "description": "Project progression state"
+        },
+        "date": {
+          "type": "string",
+          "description": "Filing timestamp"
+        }
+      },
+      "required": ["id", "planId", "planName", "clientName", "clientEmail", "status", "date"]
+    }
+  },
+  "firestore": {
+    "messages": {
+      "schema": "ContactMessage",
+      "description": "Collection of visitor corporate inquiries"
+    },
+    "applications": {
+      "schema": "Application",
+      "description": "Collection of candidate job files"
+    },
+    "quotes": {
+      "schema": "Quote",
+      "description": "Collection of custom enterprise quotes requested"
+    },
+    "projects": {
+      "schema": "StartedProject",
+      "description": "Collection of specific plan buys and started projects"
+    }
+  }
+}

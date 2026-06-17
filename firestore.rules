@@ -1,0 +1,125 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global Safety Net default catch-all (deny all operations by default)
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn()
+        && request.auth.token.email_verified == true
+        && (request.auth.token.email == 'dhruviktra.rajput.1379@gmail.com' || request.auth.token.email == 'kshetrajnatechnologies@gmail.com');
+    }
+
+    // Collection definitions and path hardening validations
+
+    match /messages/{messageId} {
+      allow create: if isValidId(messageId) && isValidMessage(incoming());
+      allow read, delete: if isAdmin();
+      allow update: if false; // Messages are immutable
+    }
+
+    match /applications/{applicationId} {
+      allow create: if isValidId(applicationId) && isValidApplication(incoming());
+      allow read, delete: if isAdmin();
+      allow update: if false; // Applications are immutable
+    }
+
+    match /quotes/{quoteId} {
+      allow create: if isValidId(quoteId) && isValidQuote(incoming());
+      allow read, delete: if isAdmin();
+      allow update: if isAdmin(); // Admin can change status or take review actions
+    }
+
+    match /projects/{projectId} {
+      allow create: if isValidId(projectId) && isValidProject(incoming());
+      allow read, delete: if isAdmin();
+      allow update: if isAdmin(); // Admin can update started projects
+    }
+
+    match /jobs/{jobId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /service_plans/{planId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /custom_services/{serviceId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Hardened Schema Validations & Size Controls
+
+    function isValidMessage(data) {
+      return data.keys().hasAll(['id', 'name', 'email', 'subject', 'message', 'date'])
+        && data.keys().size() <= 8
+        && data.id is string && data.id.size() <= 128
+        && data.name is string && data.name.size() > 0 && data.name.size() <= 100
+        && data.email is string && data.email.size() > 0 && data.email.size() <= 150
+        && data.subject is string && data.subject.size() > 0 && data.subject.size() <= 200
+        && data.message is string && data.message.size() > 0 && data.message.size() <= 5000
+        && data.date is string && data.date.size() <= 50;
+    }
+
+    function isValidApplication(data) {
+      return data.keys().hasAll(['id', 'jobId', 'jobTitle', 'candidateName', 'candidateEmail', 'candidatePhone', 'experienceYears', 'resumeFileName', 'date'])
+        && data.keys().size() <= 10
+        && data.id is string && data.id.size() <= 128
+        && data.jobId is string && data.jobId.size() <= 128
+        && data.jobTitle is string && data.jobTitle.size() <= 150
+        && data.candidateName is string && data.candidateName.size() > 0 && data.candidateName.size() <= 100
+        && data.candidateEmail is string && data.candidateEmail.size() > 0 && data.candidateEmail.size() <= 150
+        && data.candidatePhone is string && data.candidatePhone.size() > 0 && data.candidatePhone.size() <= 30
+        && data.experienceYears is string && data.experienceYears.size() <= 30
+        && data.resumeFileName is string && data.resumeFileName.size() <= 200
+        && data.date is string && data.date.size() <= 50;
+    }
+
+    function isValidQuote(data) {
+      return data.keys().hasAll(['id', 'clientName', 'clientEmail', 'serviceArea', 'requirements', 'status', 'date'])
+        && data.keys().size() <= 11
+        && data.id is string && data.id.size() <= 128
+        && data.clientName is string && data.clientName.size() > 0 && data.clientName.size() <= 100
+        && data.clientEmail is string && data.clientEmail.size() > 0 && data.clientEmail.size() <= 150
+        && data.serviceArea is string && data.serviceArea.size() <= 100
+        && data.requirements is string && data.requirements.size() > 0 && data.requirements.size() <= 5000
+        && data.status is string && data.status.size() <= 50
+        && data.date is string && data.date.size() <= 50;
+    }
+
+    function isValidProject(data) {
+      return data.keys().hasAll(['id', 'planId', 'planName', 'clientName', 'clientEmail', 'status', 'date'])
+        && data.keys().size() <= 10
+        && data.id is string && data.id.size() <= 128
+        && data.planId is string && data.planId.size() <= 128
+        && data.planName is string && data.planName.size() <= 150
+        && data.clientName is string && data.clientName.size() > 0 && data.clientName.size() <= 100
+        && data.clientEmail is string && data.clientEmail.size() > 0 && data.clientEmail.size() <= 150
+        && data.status is string && data.status.size() <= 50
+        && data.date is string && data.date.size() <= 50;
+    }
+  }
+}
