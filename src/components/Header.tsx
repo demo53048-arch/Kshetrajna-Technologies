@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { companyDetails } from "../data";
-import { Menu, X, Inbox, HelpCircle } from "lucide-react";
+import { Menu, X, Inbox, HelpCircle, ArrowRight } from "lucide-react";
 
 interface HeaderProps {
   currentPage: string;
@@ -24,7 +24,6 @@ export default function Header({
     { id: "about", label: "About Us" },
     { id: "services", label: "Services" },
     { id: "plans", label: "Pricing & Plans" },
-    { id: "quote", label: "Request Quote" },
     { id: "portfolio", label: "Portfolio" },
     { id: "blog", label: "Blog" },
     { id: "career", label: "Career" },
@@ -67,7 +66,7 @@ export default function Header({
                 key={item.id}
                 id={`nav-item-${item.id}`}
                 onClick={() => handleNav(item.id)}
-                className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 ${
+                className={`p-2.5 rounded-lg text-sm font-semibold transition-all duration-200 ${
                   currentPage === item.id
                     ? "bg-blue-50 text-blue-700 font-semibold"
                     : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
@@ -77,6 +76,19 @@ export default function Header({
               </button>
             ))}
           </nav>
+
+          {/* Right-side CTA (desktop) */}
+          <div className="hidden lg:flex items-center ml-4">
+            <button
+              onClick={() => handleNav("quote")}
+              className="group/quote inline-flex items-center space-x-3 p-2 rounded-full border border-slate-300 bg-white text-slate-800 font-semibold text-sm shadow-sm transition-transform duration-300 ease-out hover:-translate-y-1 hover:scale-105 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-200"
+              aria-label="Get Quote"
+              id="get-quote-cta"
+            >
+              <span>Get Quote</span>
+              <ArrowRight size={16} className="transform transition-transform duration-200 group-hover/quote:translate-x-1" />
+            </button>
+          </div>
 
           {/* Mobile Menu Icon */}
           <div className="flex items-center space-x-3">
@@ -100,7 +112,7 @@ export default function Header({
                 key={item.id}
                 id={`mobile-nav-item-${item.id}`}
                 onClick={() => handleNav(item.id)}
-                className={`block w-full text-left px-4 py-3 rounded-lg text-base font-semibold transition-all ${
+                className={`block w-full text-left p-2 rounded-lg text-base font-semibold transition-all ${
                   currentPage === item.id
                     ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-700"
                     : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
