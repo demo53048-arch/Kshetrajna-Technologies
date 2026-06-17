@@ -1,9 +1,10 @@
 import { initializeApp } from "firebase/app";
 import {
   getAuth,
-  signInWithPopup,
+  signInWithRedirect,
   GoogleAuthProvider,
   onAuthStateChanged,
+  getRedirectResult,
   User,
 } from "firebase/auth";
 import {
@@ -57,6 +58,22 @@ export const initAuth = (
   onAuthSuccess?: (user: User, token: string) => void,
   onAuthFailure?: () => void
 ) => {
+  // Check for redirect result from Google sign-in
+  getRedirectResult(auth)
+    .then((result) => {
+      if (result) {
+        const credential = GoogleAuthProvider.credentialFromResult(result);
+        if (credential?.accessToken) {
+          cachedAccessToken = credential.accessToken;
+          if (onAuthSuccess) onAuthSuccess(result.user, credential.accessToken);
+        }
+      }
+    })
+    .catch((error) => {
+      console.error("Redirect sign-in error:", error);
+      if (onAuthFailure) onAuthFailure();
+    });
+
   return onAuthStateChanged(auth, async (user: User | null) => {
     if (user) {
       if (cachedAccessToken) {
@@ -76,18 +93,15 @@ export const initAuth = (
 export const googleSignIn = async (): Promise<{ user: User; accessToken: string } | null> => {
   try {
     isSigningIn = true;
-    const result = await signInWithPopup(auth, provider);
-    const credential = GoogleAuthProvider.credentialFromResult(result);
-    if (!credential?.accessToken) {
-      throw new Error("Failed to extract authorized access token from Google Credentials.");
-    }
-    cachedAccessToken = credential.accessToken;
-    return { user: result.user, accessToken: cachedAccessToken };
+    // signInWithRedirect will redirect to Google, then back to your app
+    // The result is handled in initAuth via getRedirectResult
+    await signInWithRedirect(auth, provider);
+    // This function returns null because the redirect will reload the page
+    return null;
   } catch (error) {
     console.error("Google Authentication failed:", error);
-    throw error;
-  } finally {
     isSigningIn = false;
+    throw error;
   }
 };
 
