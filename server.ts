@@ -1,6 +1,7 @@
 import express from "express";
 import nodemailer from "nodemailer";
 import dotenv from "dotenv";
+import path from "path";
 import type { ContactMessage } from "./src/types";
 
 dotenv.config();
@@ -13,6 +14,7 @@ const SMTP_SECURE = process.env.SMTP_SECURE === "true";
 const SMTP_USER = process.env.SMTP_USER;
 const SMTP_PASS = process.env.SMTP_PASS;
 const EMAIL_FROM = process.env.EMAIL_FROM ?? SMTP_USER;
+const staticPath = path.resolve("dist");
 
 if (!SMTP_USER || !SMTP_PASS) {
   throw new Error("Missing SMTP_USER or SMTP_PASS environment variables in .env");
@@ -29,9 +31,14 @@ const transporter = nodemailer.createTransport({
 });
 
 app.use(express.json());
+app.use(express.static(staticPath));
 
 app.get("/health", (_req, res) => {
   res.json({ status: "ok", service: "Kshetrajna Email API" });
+});
+
+app.get("*(?!/api)", (_req, res) => {
+  res.sendFile(path.join(staticPath, "index.html"));
 });
 
 app.post("/api/send-email", async (req, res) => {
