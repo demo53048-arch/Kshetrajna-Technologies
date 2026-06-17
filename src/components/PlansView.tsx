@@ -229,16 +229,26 @@ export default function PlansView() {
           })}
         </motion.div>
 
-        {/* Dynamic Slide-down dialog drawer enrollment wizard */}
+        {/* Popup enrollment modal */}
         <AnimatePresence>
           {selectedPlan && (
             <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: "auto", opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              className="max-w-3xl mx-auto bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-xl"
-              id="plan-start-wizard"
+              key="plan-modal"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 flex items-start justify-center pt-24 px-4 sm:px-6 lg:px-8 bg-slate-950/60"
+              onClick={closeEnrollment}
             >
+              <motion.div
+                initial={{ scale: 0.95, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.95, opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="w-full max-w-3xl bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-2xl"
+                id="plan-start-wizard"
+                onClick={(e) => e.stopPropagation()}
+              >
               <div className="p-6 sm:p-10 border-t-4 border-blue-700">
                 <div className="flex justify-between items-start mb-6">
                   <div>
@@ -381,6 +391,7 @@ export default function PlansView() {
                 )}
               </div>
             </motion.div>
+          </motion.div>
           )}
         </AnimatePresence>
 
