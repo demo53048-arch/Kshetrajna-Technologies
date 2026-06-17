@@ -236,7 +236,8 @@ export default function AdminPanel() {
       // Redirecting to Google for authentication. Result is handled automatically on return.
     } catch (error) {
       console.error(error);
-      alert("Google authentication failed. Please try again or disable popup blockers.");
+      const message = error instanceof Error ? error.message : String(error);
+      alert(`Google authentication failed: ${message}`);
     } finally {
       setIsAuthenticating(false);
     }
