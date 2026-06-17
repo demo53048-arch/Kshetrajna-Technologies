@@ -100,8 +100,9 @@ export const googleSignIn = async (): Promise<{ user: User; accessToken: string 
     return null;
   } catch (error) {
     console.error("Google Authentication failed:", error);
-    isSigningIn = false;
     throw error;
+  } finally {
+    isSigningIn = false;
   }
 };
 

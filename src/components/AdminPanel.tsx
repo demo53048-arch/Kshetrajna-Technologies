@@ -232,26 +232,15 @@ export default function AdminPanel() {
   const handleLogin = async () => {
     setIsAuthenticating(true);
     try {
-      const result = await googleSignIn();
-      if (result) {
-        setCurrentUser(result.user);
-        setAccessToken(result.accessToken);
-        const admins = ["dhruviktra.rajput.1379@gmail.com", "kshetrajnatechnologies@gmail.com"];
-        if (result.user.email && admins.includes(result.user.email)) {
-          setIsAdmin(true);
-        } else {
-          setIsAdmin(false);
-          alert(`Logged in as ${result.user.email}. Note: Only authorized executive admin accounts have master decryption permissions.`);
-        }
-      }
+      await googleSignIn();
+      // Redirecting to Google for authentication. Result is handled automatically on return.
     } catch (error) {
       console.error(error);
-      alert("Popup authentication failed. Please verify popup blocks are disabled.");
+      alert("Google authentication failed. Please try again or disable popup blockers.");
     } finally {
       setIsAuthenticating(false);
     }
   };
-
   const handleLogout = async () => {
     await logout();
     setCurrentUser(null);
