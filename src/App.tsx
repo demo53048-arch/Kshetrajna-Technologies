@@ -13,7 +13,7 @@ import CareerView from "./components/CareerView";
 import ContactView from "./components/ContactView";
 import AdminPanel from "./components/AdminPanel";
 import { ContactMessage, Application } from "./types";
-import { createMessageInDB, createApplicationInDB } from "./lib/firebase";
+import { createApplicationInDB } from "./lib/firebase";
 
 // Seed initial values to make testing interactive and visually satisfying from the first click!
 const seedInquiries: ContactMessage[] = [
@@ -154,13 +154,7 @@ export default function App() {
     window.history.replaceState(null, "", `${url.origin}${pagePath}${url.search}${url.hash}`);
   }, [currentPage]);
 
-  // Handlers (dispatching real-time records straight to Firestore)
-  const handleNewMessage = async (msg: ContactMessage) => {
-    try {
-      await createMessageInDB(msg);
-    } catch (err) {
-      console.error("Firestore automatic write fail:", err);
-    }
+  const handleNewMessage = (msg: ContactMessage) => {
     setMessages((prev) => [msg, ...prev]);
   };
 

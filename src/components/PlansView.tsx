@@ -111,13 +111,26 @@ export default function PlansView() {
       companyName: companyName || "Independent Creator",
       additionalFeatures,
       status: "Initializing",
-      date: new Date().toLocaleDateString() + " at " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+      date: new Date().toLocaleDateString() + " at " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
     };
 
     try {
       await createProjectInDB(newProject);
+
+      const response = await fetch("/api/send-email", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ type: "project", payload: newProject }),
+      });
+
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || "Failed to send project email.");
+      }
+
       setBuySuccess(true);
-      // reset states
       setClientName("");
       setClientEmail("");
       setClientPhone("");
@@ -125,7 +138,7 @@ export default function PlansView() {
       setAdditionalFeatures("");
     } catch (err: any) {
       console.error(err);
-      setErrorMsg("Failed to write details to Firestore database. Reset key parameters or contact support.");
+      setErrorMsg(err?.message || "Failed to write details to Firestore database or send confirmation email.");
     } finally {
       setIsSubmitting(false);
     }

@@ -1,11 +1,15 @@
 import React, { useState } from "react";
+import { motion } from "motion/react";
 import { companyDetails } from "../data";
+import { createMessageInDB } from "../lib/firebase";
 import { ContactMessage } from "../types";
 import { MapPin, Phone, Mail, Send, CheckCircle2, ShieldAlert, Sparkles, Building2 } from "lucide-react";
 
 interface ContactViewProps {
   onMessageSubmitted: (message: ContactMessage) => void;
 }
+
+type SubmissionStatus = "idle" | "sending" | "success" | "error";
 
 export default function ContactView({ onMessageSubmitted }: ContactViewProps) {
   // Input states
@@ -17,9 +21,20 @@ export default function ContactView({ onMessageSubmitted }: ContactViewProps) {
   const [messageText, setMessageText] = useState("");
 
   // Submit UI states
+  const [status, setStatus] = useState<SubmissionStatus>("idle");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const resetForm = () => {
+    setName("");
+    setEmail("");
+    setPhone("");
+    setCompany("");
+    setSubject("");
+    setMessageText("");
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!name.trim() || !email.trim() || !subject.trim() || !messageText.trim()) {
@@ -35,22 +50,46 @@ export default function ContactView({ onMessageSubmitted }: ContactViewProps) {
       company: company || "Independent Creator",
       subject,
       message: messageText,
-      date: new Date().toLocaleDateString() + " at " + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      date:
+        new Date().toLocaleDateString() +
+        " at " +
+        new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
     };
 
-    onMessageSubmitted(newMessage);
-    setSuccess(true);
+    setStatus("sending");
+    setErrorMessage(null);
 
-    // Reset fields after some seconds
-    setTimeout(() => {
-      setSuccess(false);
-      setName("");
-      setEmail("");
-      setPhone("");
-      setCompany("");
-      setSubject("");
-      setMessageText("");
-    }, 3000);
+    try {
+      await createMessageInDB(newMessage);
+
+      const response = await fetch("/api/send-email", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ message: newMessage }),
+      });
+
+      const responseBody = (await response.json()) as { success?: boolean; error?: string };
+
+      if (!response.ok || !responseBody.success) {
+        throw new Error(responseBody.error || "Failed to send confirmation email.");
+      }
+
+      setStatus("success");
+      setSuccess(true);
+      onMessageSubmitted(newMessage);
+
+      setTimeout(() => {
+        setSuccess(false);
+        resetForm();
+        setStatus("idle");
+      }, 3000);
+    } catch (error) {
+      console.error("Contact submission failed:", error);
+      setStatus("error");
+      setErrorMessage(error instanceof Error ? error.message : String(error));
+    }
   };
 
   return (
@@ -166,6 +205,17 @@ export default function ContactView({ onMessageSubmitted }: ContactViewProps) {
                   <span className="text-[10px] uppercase font-mono tracking-wider font-bold">Verify Communications Line</span>
                 </div>
 
+                {status === "error" && errorMessage ? (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 p-4 text-sm"
+                  >
+                    <div className="font-bold">Submission failed</div>
+                    <div>{errorMessage}</div>
+                  </motion.div>
+                ) : null}
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-slate-700 font-bold mb-1.5">Your Full Name *</label>
@@ -241,10 +291,26 @@ export default function ContactView({ onMessageSubmitted }: ContactViewProps) {
                 <div className="pt-2">
                   <button
                     type="submit"
-                    className="w-full py-3.5 bg-blue-700 hover:bg-blue-800 text-white font-bold rounded-xl transition-all flex items-center justify-center space-x-2 shadow-sm cursor-pointer"
+                    disabled={status === "sending"}
+                    className={`w-full py-3.5 ${status === "sending" ? "bg-slate-400 hover:bg-slate-400 cursor-not-allowed" : "bg-blue-700 hover:bg-blue-800"} text-white font-bold rounded-xl transition-all flex items-center justify-center space-x-2 shadow-sm`}
                   >
-                    <span>Dispatch Inquiry Securely</span>
-                    <Send size={15} />
+                    {status === "sending" ? (
+                      <>
+                        <motion.span
+                          animate={{ rotate: 360 }}
+                          transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+                          className="inline-block"
+                        >
+                          <Send size={15} />
+                        </motion.span>
+                        <span>Sending...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>Dispatch Inquiry Securely</span>
+                        <Send size={15} />
+                      </>
+                    )}
                   </button>
                 </div>
               </form>

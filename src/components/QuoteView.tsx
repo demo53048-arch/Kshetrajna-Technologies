@@ -43,6 +43,20 @@ export default function QuoteView() {
 
     try {
       await createQuoteInDB(newQuote);
+
+      const response = await fetch("/api/send-email", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ type: "quote", payload: newQuote }),
+      });
+
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || "Failed to send quote email.");
+      }
+
       setFormSubmitted(true);
       // reset state
       setClientName("");
@@ -52,7 +66,7 @@ export default function QuoteView() {
       setRequirements("");
     } catch (err: any) {
       console.error(err);
-      setErrorText("Communication with security servers failed. Please check your credentials or retry.");
+      setErrorText(err?.message || "Communication with security servers failed. Please check your credentials or retry.");
     } finally {
       setIsPending(false);
     }

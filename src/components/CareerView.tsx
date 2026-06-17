@@ -48,6 +48,8 @@ export default function CareerView({ onApplySubmitted }: CareerViewProps) {
 
   // Success indicator
   const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorText, setErrorText] = useState("");
 
   const toggleExpand = (jobId: string) => {
     setExpandedJobId(expandedJobId === jobId ? null : jobId);
@@ -79,14 +81,17 @@ export default function CareerView({ onApplySubmitted }: CareerViewProps) {
   };
 
   // Submit Application handling
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedJob) return;
 
     if (!candidateName.trim() || !candidateEmail.trim() || !candidatePhone.trim()) {
-      alert("Please populate the required fields!");
+      setErrorText("Please populate the required fields!");
       return;
     }
+
+    setErrorText("");
+    setIsSubmitting(true);
 
     const newApp: Application = {
       id: "app_" + Date.now(),
@@ -98,23 +103,42 @@ export default function CareerView({ onApplySubmitted }: CareerViewProps) {
       experienceYears,
       coverLetter,
       resumeFileName: file ? file.name : "Generated_CV_Assessment.pdf",
-      date: new Date().toLocaleDateString()
+      date: new Date().toLocaleDateString(),
     };
 
-    onApplySubmitted(newApp);
-    setSubmitSuccess(true);
+    try {
+      onApplySubmitted(newApp);
 
-    // Reset fields after delay
-    setTimeout(() => {
-      setSelectedJob(null);
-      setSubmitSuccess(false);
-      setCandidateName("");
-      setCandidateEmail("");
-      setCandidatePhone("");
-      setExperienceYears("0-1");
-      setCoverLetter("");
-      setFile(null);
-    }, 2800);
+      const response = await fetch("/api/send-email", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ type: "application", payload: newApp }),
+      });
+
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || "Failed to send application email.");
+      }
+
+      setSubmitSuccess(true);
+      setTimeout(() => {
+        setSelectedJob(null);
+        setSubmitSuccess(false);
+        setCandidateName("");
+        setCandidateEmail("");
+        setCandidatePhone("");
+        setExperienceYears("0-1");
+        setCoverLetter("");
+        setFile(null);
+      }, 2800);
+    } catch (err: any) {
+      console.error("Career application failed:", err);
+      setErrorText(err?.message || "Something went wrong while sending your application.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
