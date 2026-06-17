@@ -76,17 +76,14 @@ export const initAuth = (
 
   return onAuthStateChanged(auth, async (user: User | null) => {
     if (user) {
-      if (cachedAccessToken) {
-        if (onAuthSuccess) onAuthSuccess(user, cachedAccessToken);
-      } else if (!isSigningIn) {
-        // Clear tokens if we're not actively logging in
-        cachedAccessToken = null;
-        if (onAuthFailure) onAuthFailure();
-      }
-    } else {
-      cachedAccessToken = null;
-      if (onAuthFailure) onAuthFailure();
+      // If the user is signed in, allow the app to render the authenticated UI.
+      // Token may be handled separately via getRedirectResult.
+      if (onAuthSuccess) onAuthSuccess(user, cachedAccessToken || "");
+      return;
     }
+
+    cachedAccessToken = null;
+    if (onAuthFailure) onAuthFailure();
   });
 };
 
