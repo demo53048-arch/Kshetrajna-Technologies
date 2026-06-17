@@ -37,10 +37,6 @@ app.get("/health", (_req, res) => {
   res.json({ status: "ok", service: "Kshetrajna Email API" });
 });
 
-app.get("*(?!/api)", (_req, res) => {
-  res.sendFile(path.join(staticPath, "index.html"));
-});
-
 app.post("/api/send-email", async (req, res) => {
   try {
     type FormType = "contact" | "application" | "quote" | "project";
@@ -185,6 +181,10 @@ app.post("/api/send-email", async (req, res) => {
     console.error("Email send failed:", error);
     return res.status(500).json({ error: error instanceof Error ? error.message : "Failed to send email." });
   }
+});
+
+app.get("/*", (_req, res) => {
+  res.sendFile(path.join(staticPath, "index.html"));
 });
 
 app.listen(PORT, () => {
