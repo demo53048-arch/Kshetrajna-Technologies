@@ -1,4 +1,4 @@
-import { BlogPost, Project, Job } from "./types";
+import { BlogPost, Project, Job, CustomService } from "./types";
 
 export const companyDetails = {
   name: "Kshetrajna Technologies LLP",
@@ -35,7 +35,7 @@ export const companyDetails = {
   ]
 };
 
-export const servicesData = [
+export const servicesData: CustomService[] = [
   {
     id: "enterprise-software",
     title: "Enterprise Software Design",

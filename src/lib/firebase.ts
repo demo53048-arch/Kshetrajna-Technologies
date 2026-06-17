@@ -2,6 +2,7 @@ import { initializeApp } from "firebase/app";
 import {
   getAuth,
   signInWithRedirect,
+  signInWithPopup,
   GoogleAuthProvider,
   onAuthStateChanged,
   getRedirectResult,
@@ -52,7 +53,7 @@ testConnection();
 
 // AUTH STATE ENGINE & IN-MEMORY TOKEN CACHING
 let isSigningIn = false;
-let cachedAccessToken: string | null = null;
+let cachedAccessToken: string | null = typeof window !== "undefined" ? sessionStorage.getItem("google_access_token") : null;
 
 export const initAuth = (
   onAuthSuccess?: (user: User, token: string) => void,
@@ -65,6 +66,9 @@ export const initAuth = (
         const credential = GoogleAuthProvider.credentialFromResult(result);
         if (credential?.accessToken) {
           cachedAccessToken = credential.accessToken;
+          if (typeof window !== "undefined") {
+            sessionStorage.setItem("google_access_token", credential.accessToken);
+          }
           if (onAuthSuccess) onAuthSuccess(result.user, credential.accessToken);
         }
       }
@@ -83,6 +87,9 @@ export const initAuth = (
     }
 
     cachedAccessToken = null;
+    if (typeof window !== "undefined") {
+      sessionStorage.removeItem("google_access_token");
+    }
     if (onAuthFailure) onAuthFailure();
   });
 };
@@ -90,11 +97,14 @@ export const initAuth = (
 export const googleSignIn = async (): Promise<{ user: User; accessToken: string } | null> => {
   try {
     isSigningIn = true;
-    // signInWithRedirect will redirect to Google, then back to your app
-    // The result is handled in initAuth via getRedirectResult
-    await signInWithRedirect(auth, provider);
-    // This function returns null because the redirect will reload the page
-    return null;
+    const result = await signInWithPopup(auth, provider);
+    const credential = GoogleAuthProvider.credentialFromResult(result);
+    const accessToken = credential?.accessToken || "";
+    cachedAccessToken = accessToken;
+    if (typeof window !== "undefined") {
+      sessionStorage.setItem("google_access_token", accessToken);
+    }
+    return { user: result.user, accessToken };
   } catch (error) {
     console.error("Google Authentication failed:", error);
     throw error;
@@ -110,6 +120,9 @@ export const getAccessToken = async (): Promise<string | null> => {
 export const logout = async () => {
   await auth.signOut();
   cachedAccessToken = null;
+  if (typeof window !== "undefined") {
+    sessionStorage.removeItem("google_access_token");
+  }
 };
 
 // FIRESTORE HARDENED ERROR HANDLING SYSTEM (Mandatory Constraint)

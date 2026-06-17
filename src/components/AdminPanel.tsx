@@ -232,8 +232,19 @@ export default function AdminPanel() {
   const handleLogin = async () => {
     setIsAuthenticating(true);
     try {
-      await googleSignIn();
-      // Redirecting to Google for authentication. Result is handled automatically on return.
+      const result = await googleSignIn();
+      if (result) {
+        setCurrentUser(result.user);
+        setAccessToken(result.accessToken);
+        
+        // Define corporate administrator email guidelines
+        const admins = ["dhruviktra.rajput.1379@gmail.com", "kshetrajnatechnologies@gmail.com"];
+        if (result.user.email && admins.includes(result.user.email)) {
+          setIsAdmin(true);
+        } else {
+          setIsAdmin(false);
+        }
+      }
     } catch (error) {
       console.error(error);
       const message = error instanceof Error ? error.message : String(error);
@@ -347,12 +358,27 @@ export default function AdminPanel() {
   const fetchRecentEmails = async () => {
     if (!accessToken) return;
     setGmailLoading(true);
+    setGmailMessages([]);
     try {
       const res = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=5", {
         headers: {
           "Authorization": `Bearer ${accessToken}`
         }
       });
+
+      if (!res.ok) {
+        const errText = await res.text();
+        console.error("Gmail list error:", errText);
+        let friendlyMsg = `HTTP ${res.status}: ${res.statusText}`;
+        try {
+          const errJson = JSON.parse(errText);
+          const apiMsg = errJson?.error?.message || errJson?.error_description;
+          if (apiMsg) friendlyMsg = apiMsg;
+        } catch { /* Not JSON */ }
+        setGmailMessages([{ id: "error", snippet: `⚠ Gmail API Error: ${friendlyMsg}`, sizeEstimate: 0 }]);
+        return;
+      }
+
       const data = await res.json();
       if (data.messages && data.messages.length > 0) {
         const list = [];
@@ -369,6 +395,7 @@ export default function AdminPanel() {
       }
     } catch (err) {
       console.error("Gmail listing error:", err);
+      setGmailMessages([{ id: "error", snippet: `⚠ Network error: ${err instanceof Error ? err.message : String(err)}`, sizeEstimate: 0 }]);
     } finally {
       setGmailLoading(false);
     }
@@ -433,13 +460,24 @@ export default function AdminPanel() {
         setEmailBody("");
         setTimeout(() => setMailStatus(""), 4000);
       } else {
-        const errDetail = await res.text();
-        console.error(errDetail);
-        setMailStatus("Failed to sending. Please confirm authorized scopes or permissions.");
+        const errText = await res.text();
+        console.error("Gmail API error response:", errText);
+        let friendlyError = `HTTP ${res.status}: ${res.statusText}`;
+        try {
+          const errJson = JSON.parse(errText);
+          const apiMsg = errJson?.error?.message || errJson?.error_description || errJson?.message;
+          if (apiMsg) {
+            friendlyError = apiMsg;
+          }
+        } catch {
+          // Not JSON - use raw text
+          if (errText) friendlyError = errText;
+        }
+        setMailStatus(`⚠ Gmail API Error: ${friendlyError}`);
       }
     } catch (err: any) {
       console.error(err);
-      setMailStatus("Dispatched failed: " + err.message);
+      setMailStatus("Dispatch failed: " + err.message);
     } finally {
       setMailSending(false);
     }
@@ -1200,10 +1238,31 @@ export default function AdminPanel() {
                         <Mail size={20} className="text-red-700" />
                         <span>Corporate Gmail Dispatch Center</span>
                       </h3>
-                      <span className="text-[10px] font-mono font-bold bg-green-50 border border-green-150 px-2 py-0.5 rounded text-green-700">
-                        Oauth Active
-                      </span>
+                      {accessToken ? (
+                        <span className="text-[10px] font-mono font-bold bg-green-50 border border-green-150 px-2.5 py-0.5 rounded text-green-700">
+                          OAuth Active
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-mono font-bold bg-red-50 border border-red-150 px-2.5 py-0.5 rounded text-red-700">
+                          OAuth Inactive
+                        </span>
+                      )}
                     </div>
+
+                    {!accessToken && (
+                      <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                        <div className="text-xs text-amber-805 text-amber-800 font-semibold leading-relaxed">
+                          <strong>Gmail API Authorization Required:</strong> Your session does not have an active Google OAuth access token. Please authorize to compose and send emails.
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleLogin}
+                          className="px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white font-bold rounded-lg text-xs shrink-0 cursor-pointer shadow transition-all hover:scale-[1.02]"
+                        >
+                          Authorize Gmail API
+                        </button>
+                      </div>
+                    )}
 
                     {/* Quick sending email form */}
                     <form onSubmit={handleSendGmail} className="space-y-4 text-xs sm:text-sm">
