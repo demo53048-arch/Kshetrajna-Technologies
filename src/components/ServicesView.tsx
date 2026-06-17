@@ -1,10 +1,23 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { servicesData } from "../data";
 import { CustomService } from "../types";
 import { db } from "../lib/firebase";
-import { collection, onSnapshot, query } from "firebase/firestore";
+import { collection, onSnapshot, query, FirestoreError } from "firebase/firestore";
 import { motion, AnimatePresence } from "motion/react";
-import { Layers, BrainCircuit, Cloud, MonitorSmartphone, Briefcase, ChevronRight, HelpCircle, Sparkles, X, Check, Laptop, Terminal } from "lucide-react";
+import { 
+  Layers, 
+  BrainCircuit, 
+  Cloud, 
+  MonitorSmartphone, 
+  Briefcase, 
+  X, 
+  Check, 
+  Laptop, 
+  Terminal,
+  Activity,
+  AlertTriangle,
+  ChevronRight
+} from "lucide-react";
 
 export default function ServicesView() {
   const [liveServices, setLiveServices] = useState<CustomService[]>([]);
@@ -19,8 +32,8 @@ export default function ServicesView() {
       });
       setLiveServices(list.sort((a, b) => a.id.localeCompare(b.id)));
       setLoading(false);
-    }, (err) => {
-      console.error("Firestore loading custom_services failed: ", err);
+    }, (err: FirestoreError) => {
+      console.warn("Firestore loading custom_services failed or inactive. Falling back to static data: ", err.message);
       setLoading(false);
     });
     return () => unsubscribe();
@@ -30,64 +43,89 @@ export default function ServicesView() {
 
   const [activeService, setActiveService] = useState<string>("enterprise-software");
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const serviceDetailsRef = useRef<HTMLDivElement | null>(null);
   
   // Custom Architecture Advisor States
   const [selectedCoreSvc, setSelectedCoreSvc] = useState<string>("enterprise-software");
   const [infrastructureTier, setInfrastructureTier] = useState<string>("cloud-native");
 
-  // Map icon strings to components with professional blue accents
+  // Map icon strings to components with professional cobalt blue accents
   const iconMap: Record<string, React.ReactNode> = {
-    Layers: <Layers className="text-blue-700" size={24} />,
-    BrainCog: <BrainCircuit className="text-blue-700" size={24} />,
-    Cloud: <Cloud className="text-blue-700" size={24} />,
-    MonitorSmartphone: <MonitorSmartphone className="text-blue-700" size={24} />,
-    Briefcase: <Briefcase className="text-blue-700" size={24} />,
+    Layers: <Layers size={18} className="text-blue-700" />,
+    BrainCog: <BrainCircuit size={18} className="text-blue-700" />,
+    Cloud: <Cloud size={18} className="text-blue-700" />,
+    MonitorSmartphone: <MonitorSmartphone size={18} className="text-blue-700" />,
+    Briefcase: <Briefcase size={18} className="text-blue-700" />,
   };
 
-  const getSvcDetails = (id: string) => {
-    return services.find((s) => s.id === id);
+  const getSvcDetails = (id: string): CustomService => {
+    return services.find((s) => s.id === id) || services[0];
   };
 
-  const currentSvc = getSvcDetails(activeService) || services[0];
+  const currentSvc = getSvcDetails(activeService);
+
+  const scrollServiceIntoView = () => {
+    if (!serviceDetailsRef.current) return;
+    serviceDetailsRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
 
   // Advisor logic
   const getAdvisorOutput = () => {
-    const serviceName = getSvcDetails(selectedCoreSvc)?.title || "Standard Project";
+    const selectedSvc = getSvcDetails(selectedCoreSvc);
+    const serviceName = selectedSvc?.title || "Standard Project";
     
     let stack = ["React", "TypeScript", "Vite", "Tailwind CSS"];
-    let db = "PostgreSQL";
+    let dbName = "PostgreSQL DB";
     let hosting = "Independent VM";
     let strategy = "Single-node deploy";
 
     if (selectedCoreSvc === "enterprise-software") {
       stack = ["Node.js", "Express", "TypeScript", "Drizzle ORM"];
-      db = "Postgres via Cloud SQL / Supabase";
-    } else if (selectedCoreSvc === "ai-automation") {
-      stack = ["@google/genai SDK", "Python", "FastAPI", "LangChain/LlamaIndex"];
-      db = "Pinecone / pgvector in Postgres";
-    } else if (selectedCoreSvc === "cloud-devops") {
-      stack = ["Terraform", "Docker", "GitHub Actions", "Shell"];
-      db = "Multi-zone DB with replicas";
-    } else if (selectedCoreSvc === "web-mobile") {
-      stack = ["React Native", "Expo", "React with NextJS", "Tailwind"];
-      db = "Local SQLite with Cloud Sync";
+      dbName = "Postgres via Cloud SQL / Supabase";
+    } else if (selectedCoreSvc === "shopify-store") {
+      stack = ["Shopify Liquid", "Remote GraphQL API", "Hydro Theme"];
+      dbName = "Shopify Storefront Store SQL";
+    } else if (selectedCoreSvc === "wordpress-woo") {
+      stack = ["PHP WP Engine", "Custom Gutenberg JS", "Apollo Rest Client"];
+      dbName = "MySQL Cluster Server";
+    } else if (selectedCoreSvc === "landing-pages") {
+      stack = ["Vite Bundler", "React CSS Grid", "Framer Motion"];
+      dbName = "In-Memory Client Schema (None)";
+    } else if (selectedCoreSvc === "speed-opt") {
+      stack = ["Next.js SSR static rendering", "Brotli GZIP", "CDN routing"];
+      dbName = "Edge Cache Records";
+    } else if (selectedCoreSvc === "api-integration") {
+      stack = ["Express Webhooks Middleware", "Redis Event Queue", "OAuth Client"];
+      dbName = "Sync Logs Database";
+    } else if (selectedCoreSvc === "payment-gateway") {
+      stack = ["Stripe JS Elements", "Server Handshake Controller", "HTTPS SSL"];
+      dbName = "Stripe Account Ledger";
+    } else if (selectedCoreSvc === "bug-fixing") {
+      stack = ["Sentry Integration", "Webpack Bundle Analyzer", "Jest testing"];
+      dbName = "Regression Case Storage";
+    } else if (selectedCoreSvc === "site-migration") {
+      stack = ["Rsync Automation Scripts", "DNS Dynamic records", "SSH Handshake"];
+      dbName = "Synced Replica Node";
+    } else if (selectedCoreSvc === "ui-ux-refinement") {
+      stack = ["Dynamic Viewport Hook", "Tailwind CSS custom spacing variables"];
+      dbName = "Local Storage App preferences";
     }
 
     if (infrastructureTier === "cloud-native") {
-      hosting = "GCP Cloud Run / AWS ECS (Serverless Containers)";
-      strategy = "Automated continuous delivery trigger pipelines";
-    } else if (infrastructureTier === "high-availability") {
-      hosting = "Google Kubernetes Engine (GKE) Cluster";
-      strategy = "Multi-zone health check triggers, automated failovers";
+      hosting = "GCP CLOUD RUN (Serverless)";
+      strategy = "GitHub Actions / Terraform Auto-provisioning";
+    } else if (infrastructureTier === "hybrid") {
+      hosting = "HYBRID CLUSTER GATEWAY";
+      strategy = "Multi-zone sync trigger failovers";
     } else {
-      hosting = "DigitalOcean Droplet or Simple VPS";
-      strategy = "Pragmatic manual build triggers & systemd management";
+      hosting = "LEGACY VPS NODE";
+      strategy = "Manual cron schedules & local logs system";
     }
 
     return {
       serviceName,
       stack,
-      db,
+      db: dbName,
       hosting,
       strategy
     };
@@ -96,146 +134,172 @@ export default function ServicesView() {
   const advisor = getAdvisorOutput();
 
   return (
-    <div className="bg-slate-50 text-slate-800 animate-fade-in py-16" id="services-view-container">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        
-        {/* Page Head */}
-        <div className="text-center max-w-3xl mx-auto mb-16">
-          <span className="text-xs uppercase font-mono tracking-widest text-blue-700 font-bold block mb-2">Technical Matrix</span>
-          <h1 className="font-display text-3xl sm:text-4xl md:text-5xl font-extrabold text-slate-900 tracking-tight">Our Capabilities</h1>
-          <div className="h-1 w-24 bg-blue-700 mx-auto mt-4 rounded"></div>
-          <p className="mt-5 text-slate-600 text-sm sm:text-base leading-relaxed">
-            From architecture planning to deep code execution, we implement high-fidelity solutions for our partners.
-          </p>
+    <div className="bg-slate-50 text-slate-800 py-16 min-h-screen flex flex-col" id="services-page-wrapper">
+      {/* Page Header Section */}
+      <div className="text-center max-w-3xl mx-auto mb-12 px-4">
+        <span className="text-xs uppercase font-mono tracking-widest text-blue-700 font-bold block mb-3">Technical Matrix</span>
+        <h1 className="text-4xl sm:text-5xl md:text-6xl font-black text-slate-900 tracking-tight mb-4">Our Capabilities</h1>
+        <div className="h-1.5 w-24 bg-blue-700 mx-auto mb-6 rounded-full"></div>
+        <p className="text-slate-600 text-sm sm:text-base leading-relaxed">
+          From architecture planning to deep code execution, we implement high-fidelity solutions for our partners.
+        </p>
+      </div>
+
+      {/* Main Grid Content */}
+      <div className="flex-1 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-6 flex-1 overflow-hidden" id="services-view-container">
+      
+      {/* Sidebar: Service Navigation - Column Span 4 */}
+      <section className="col-span-12 md:col-span-4 flex flex-col gap-3 h-full" id="sidebar-services-nav">
+        <div className="mb-1 shrink-0">
+          <span className="text-[10px] font-mono text-blue-700 font-bold uppercase tracking-widest block mb-0.5">Technical Matrix</span>
+          <h2 className="text-xl font-black text-slate-900 leading-tight">Practice Areas</h2>
         </div>
-
-        {/* Dynamic Detail Interface */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-24">
-          
-          {/* Services Selector Navigation list - 5 columns */}
-          <div className="lg:col-span-5 space-y-3" id="service-navigator-list">
-            <h3 className="text-xs uppercase font-mono tracking-wider font-semibold text-slate-500 mb-3 pl-3">Select Practice Area</h3>
-            {services.map((svc) => (
-              <button
-                key={svc.id}
-                onClick={() => setActiveService(svc.id)}
-                className={`w-full text-left p-4 rounded-xl border transition-all flex items-start space-x-4 cursor-pointer group ${
-                  activeService === svc.id
-                    ? "bg-white text-slate-900 border-blue-500 shadow-md"
-                    : "bg-white/60 border-slate-200 text-slate-600 hover:text-slate-900 hover:border-slate-300 hover:bg-white"
-                }`}
-              >
-                <div className="p-2 bg-blue-50 rounded-lg group-hover:scale-105 transition-transform shrink-0">
-                  {iconMap[svc.icon] || <Layers size={20} />}
-                </div>
-                <div>
-                  <h4 className="text-sm font-bold font-display tracking-tight text-slate-900 block">
-                    {svc.title}
-                  </h4>
-                  <p className="text-xs text-slate-500 line-clamp-1 mt-0.5">
-                    {svc.description}
-                  </p>
-                </div>
-              </button>
-            ))}
-          </div>
-
-          {/* Active Service Detailed View card - 7 columns */}
-          <div className="lg:col-span-7 bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 flex flex-col justify-between shadow-sm" id="active-service-details">
-            <div className="space-y-6">
-              <div className="flex items-center space-x-3 text-blue-700">
-                <Sparkles size={16} />
-                <span className="text-xs uppercase font-mono tracking-widest font-bold">In-Depth View</span>
+        
+        {/* Navigation list items container - Styled for nice vertical overflow scroll handling */}
+        <div className="space-y-2 overflow-y-auto pr-1 max-h-[360px] md:max-h-[380px] scrollbar-thin scrollbar-thumb-slate-200" id="service-navigator-list">
+          {services.map((svc) => (
+            <button
+              key={svc.id}
+              onClick={() => {
+                setActiveService(svc.id);
+                scrollServiceIntoView();
+              }}
+              className={`w-full text-left p-3.5 rounded-xl border-2 transition-all flex gap-4 items-start cursor-pointer group ${
+                activeService === svc.id
+                  ? "bg-white border-blue-600 shadow-sm"
+                  : "bg-white/60 border-slate-200 hover:border-slate-300 hover:bg-white flex gap-4 items-start opacity-75 hover:opacity-100"
+              }`}
+            >
+              <div className={`p-2 rounded-lg shrink-0 transition-transform group-hover:scale-105 ${
+                activeService === svc.id ? "bg-blue-50 text-blue-700" : "bg-slate-100 text-slate-400"
+              }`}>
+                {iconMap[svc.icon] || <Layers size={18} />}
               </div>
-              
-              <div>
-                <h2 className="text-xl sm:text-2xl font-display font-bold text-slate-900 tracking-tight">
-                  {currentSvc.title}
-                </h2>
-                <p className="mt-3 text-sm text-slate-605 leading-relaxed">
-                  {currentSvc.description}
+              <div className="min-w-0 flex-1">
+                <h4 className="text-xs sm:text-sm font-bold text-slate-800 tracking-tight leading-snug truncate">
+                  {svc.title}
+                </h4>
+                <p className="text-[11px] text-slate-500 line-clamp-1 mt-0.5 font-medium">
+                  {svc.description}
                 </p>
               </div>
+            </button>
+          ))}
+        </div>
 
+        {/* High Priority Red Box Section (Critical Alert) */}
+        <div className="p-4 bg-red-50 border-2 border-red-600 rounded-xl shadow-md mt-auto shrink-0" id="critical-alert-box">
+          <div className="flex items-center gap-2 mb-2">
+            <AlertTriangle className="text-red-600 animate-pulse" size={16} />
+            <span className="text-[10px] font-bold text-red-700 uppercase tracking-tighter font-mono">
+              Critical System Alert
+            </span>
+          </div>
+          <p className="text-[11px] leading-tight text-red-800 font-semibold font-sans">
+            Our security review indicates that Legacy Enterprise deployments (v1.2) must migrate by Q4 to maintain SOC2 compliance.
+          </p>
+        </div>
+      </section>
+
+      {/* Main Content: Details Banner + Interactive Advisor - Column Span 8 */}
+      <section ref={serviceDetailsRef} className="col-span-12 md:col-span-8 flex flex-col gap-6 h-full" id="main-services-details-panel">
+        
+        {/* Active Service Header Card */}
+        <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm flex-shrink-0" id="active-service-details">
+          <div className="h-32 sm:h-36 bg-slate-800 relative">
+            {/* Visual gradient overlay matching mockup */}
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-900/40 to-slate-900/90"></div>
+            <div className="absolute bottom-0 p-5 sm:p-6 w-full flex justify-between items-end">
               <div>
-                <h4 className="text-xs uppercase font-mono tracking-wider text-slate-450 mb-3 font-semibold">Key Capabilities & Features Included</h4>
-                <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {currentSvc.features.map((feat, i) => (
-                    <li key={i} className="flex items-start space-x-2 text-xs sm:text-sm text-slate-650">
-                      <ChevronRight className="text-blue-700 mt-0.5 shrink-0" size={14} />
-                      <span>{feat}</span>
-                    </li>
-                  ))}
-                </ul>
+                <span className="text-[10px] font-mono text-blue-400 font-bold uppercase mb-1 block">Core Competency</span>
+                <h3 className="text-lg sm:text-xl font-bold text-white tracking-tight leading-tight">
+                  {currentSvc.title}
+                </h3>
+              </div>
+              <div className="flex gap-1.5 mb-1 shrink-0">
+                <span className="px-2 py-0.5 bg-white/10 border border-white/25 text-white rounded text-[9px] font-mono font-medium">Scalable</span>
+                <span className="px-2 py-0.5 bg-white/10 border border-white/25 text-white rounded text-[9px] font-mono font-medium">Secure</span>
               </div>
             </div>
+          </div>
 
-            <div className="pt-6 border-t border-slate-100 mt-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div className="text-xs text-slate-500 font-mono">
-                Led by: <span className="text-slate-700 font-bold">Kshetrajna Solutions Team</span>
-              </div>
-              <div className="flex items-center space-x-2.5">
-                <button
-                  onClick={() => setIsDetailsOpen(true)}
-                  className="px-4.5 py-2 bg-blue-700 hover:bg-blue-800 text-white font-bold font-display rounded-xl text-xs flex items-center space-x-1 shadow cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98]"
-                >
-                  <span>Blueprint Details</span>
-                  <ChevronRight size={13} />
-                </button>
-                <span className="text-xs bg-blue-50 text-blue-700 border border-blue-100 px-3 py-1 rounded-full font-mono font-medium">
-                  Full lifecycle
-                </span>
-              </div>
+          {/* Lower Key Engineering Deliverables block */}
+          <div className="p-5 sm:p-6 flex flex-col sm:flex-row gap-5 sm:gap-6 justify-between">
+            <div className="flex-1 min-w-0">
+              <h5 className="text-[10px] font-bold text-slate-400 uppercase mb-2.5 tracking-wider font-mono">
+                Key Engineering Deliverables
+              </h5>
+              <ul className="grid grid-cols-1 sm:grid-cols-2 gap-y-1.5 gap-x-4">
+                {currentSvc.features.map((feat, i) => (
+                  <li key={i} className="flex items-center gap-2 text-[11px] text-slate-600 font-medium">
+                    <div className="w-1.5 h-1.5 bg-blue-600 rounded-full shrink-0"></div>
+                    <span className="truncate">{feat}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="hidden sm:block w-px bg-slate-150"></div>
+            <div className="w-full sm:w-48 flex flex-col justify-center shrink-0">
+              <p className="text-[10px] text-slate-400 italic mb-2.5 font-medium leading-normal">
+                High-performance code with guaranteed 99.9% uptime architecture and strict clean code principles.
+              </p>
+              <button 
+                onClick={() => setIsDetailsOpen(true)}
+                id="btn-blueprint-details-open"
+                className="w-full py-2 bg-slate-900 hover:bg-slate-850 active:scale-95 text-white text-[10px] font-bold rounded-lg uppercase tracking-widest cursor-pointer transition-all text-center border-0"
+              >
+                View Blueprint
+              </button>
             </div>
           </div>
         </div>
 
-        {/* ARCHITECTURE ADVISOR - HIGHLY INTERACTIVE COMPONENT */}
-        <div className="bg-white border border-slate-200 rounded-2xl p-6 sm:p-10 shadow-sm" id="tech-architecture-advisor">
-          <div className="max-w-2xl">
-            <div className="inline-flex items-center space-x-1.5 bg-blue-50 text-blue-700 border border-blue-100 px-3 py-1 rounded-full text-[10px] font-mono tracking-widest uppercase mb-4">
-              <HelpCircle size={10} />
-              <span>Interactive Toolkit</span>
+        {/* Interactive Advisor Tool */}
+        <div className="bg-white border border-slate-200 rounded-2xl p-5 sm:p-6 shadow-sm flex-1 flex flex-col justify-between" id="tech-architecture-advisor">
+          <div className="flex justify-between items-start mb-4">
+            <div>
+              <h3 className="text-sm font-bold text-slate-900 tracking-tight">Infrastructure & Technology Advisor</h3>
+              <p className="text-[11px] text-slate-500 font-medium mt-0.5">Live simulation of K-Tech standard deployments</p>
             </div>
-            <h3 className="text-xl sm:text-2xl font-display font-extrabold text-slate-900 tracking-tight">
-              Cloud Infrastructure & Technology Advisor
-            </h3>
-            <p className="text-slate-600 text-xs sm:text-sm mt-2 leading-relaxed">
-              Plan your project parameters below to see the recommended technology stack and cloud framework Kshetrajna Technologies would implement.
-            </p>
+            <div className="px-3 py-1 bg-blue-50 text-blue-700 border border-blue-100 rounded-full text-[10px] font-bold font-mono shrink-0">
+              ACTIVE SESSION
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mt-8 pt-8 border-t border-slate-100">
-            {/* Input form panel */}
-            <div className="lg:col-span-5 space-y-5">
-              <div>
-                <label className="block text-xs uppercase font-mono tracking-wider text-slate-500 mb-2 font-bold">Core Service Requirement</label>
-                <select
-                  value={selectedCoreSvc}
-                  onChange={(e) => setSelectedCoreSvc(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 text-slate-800 px-3 py-2.5 rounded-lg text-xs sm:text-sm focus:outline-none focus:border-blue-700 focus:ring-1 focus:ring-blue-700"
-                >
-                  {services.map((s) => (
-                    <option key={s.id} value={s.id}>{s.title}</option>
-                  ))}
-                </select>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 flex-1 items-stretch">
+            {/* Controls */}
+            <div className="space-y-4 flex flex-col justify-center">
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono">Service Target</label>
+                <div className="relative">
+                  <select
+                    value={selectedCoreSvc}
+                    onChange={(e) => setSelectedCoreSvc(e.target.value)}
+                    className="w-full bg-slate-50 border-2 border-slate-200 hover:border-slate-300 p-2.5 rounded-lg text-xs font-semibold flex justify-between items-center text-slate-800 focus:outline-none focus:border-blue-600 transition-all cursor-pointer"
+                  >
+                    {services.map((s) => (
+                      <option key={s.id} value={s.id}>{s.title}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
-              <div>
-                <label className="block text-xs uppercase font-mono tracking-wider text-slate-500 mb-2 font-bold">Infrastructure Deploy Tier</label>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono">Infra Tier</label>
                 <div className="grid grid-cols-3 gap-2">
                   {[
-                    { id: "pragmatic", label: "Pragmatic VPS" },
                     { id: "cloud-native", label: "Cloud Native" },
-                    { id: "high-availability", label: "High Scale GKE" }
+                    { id: "hybrid", label: "Hybrid" },
+                    { id: "legacy", label: "Legacy" }
                   ].map((tier) => (
                     <button
                       key={tier.id}
                       onClick={() => setInfrastructureTier(tier.id)}
-                      className={`px-2 py-2 text-[10px] sm:text-xs font-bold rounded-lg border transition-all text-center cursor-pointer ${
+                      className={`py-2 rounded text-[10px] font-bold transition-all cursor-pointer ${
                         infrastructureTier === tier.id
-                          ? "bg-blue-750 bg-blue-700 text-white border-blue-700"
-                          : "bg-slate-50 text-slate-600 border-slate-200 hover:text-slate-900 hover:bg-slate-100"
+                          ? "bg-blue-700 text-white shadow-sm"
+                          : "bg-slate-50 text-slate-600 border border-slate-200 hover:text-slate-900 hover:bg-slate-100 hover:border-slate-300"
                       }`}
                     >
                       {tier.label}
@@ -245,196 +309,181 @@ export default function ServicesView() {
               </div>
             </div>
 
-            {/* Live interactive output panel */}
-            <div className="lg:col-span-7 bg-slate-900 text-slate-300 p-6 rounded-xl space-y-4 font-mono text-xs shadow-lg relative overflow-hidden">
-              <div className="absolute right-[-10%] bottom-[-10%] w-32 h-32 border-[12px] border-slate-800 rounded-full opacity-20"></div>
-              
-              <div className="text-slate-500 border-b border-sidebar border-slate-800 pb-2 flex justify-between text-[10px] relative z-10">
-                <span>RECOMMENDED BLUEPRINT</span>
-                <span className="text-blue-400 font-bold">K-TECH ROADMAP</span>
-              </div>
-
-              <div className="relative z-10">
-                <div className="text-slate-500 text-[10px] uppercase font-bold">APPLICATION STRATEGY:</div>
-                <div className="text-white font-sans text-sm font-bold">{advisor.serviceName}</div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 relative z-10">
-                <div>
-                  <div className="text-slate-500 text-[10px] uppercase font-bold">CORE LANGUAGES & FRAMES:</div>
-                  <div className="text-blue-400 mt-1 text-[11px] font-mono leading-tight font-semibold">
-                    {advisor.stack.join(" • ")}
+            {/* Terminal Output */}
+            <div className="bg-slate-900 rounded-xl p-4 font-mono text-[10px] relative overflow-hidden flex flex-col justify-between h-full min-h-[160px] shadow" id="terminal-advisor-output">
+               <div className="flex justify-between text-slate-500 border-b border-slate-800 pb-1.5 mb-2 shrink-0">
+                  <span>BUILD_PLAN_GEN_04</span>
+                  <span className="text-emerald-500 font-bold animate-pulse">READY</span>
+               </div>
+               
+               <div className="space-y-2.5 flex-1 flex flex-col justify-center">
+                  <div>
+                    <span className="text-slate-500 block font-bold">&gt; STACK RECO:</span>
+                    <span className="text-blue-400 font-bold">{advisor.stack.join(" • ")}</span>
                   </div>
-                </div>
-                <div>
-                  <div className="text-slate-500 text-[10px] uppercase font-bold">DATABASE ARCHITECTURE:</div>
-                  <div className="text-blue-300 mt-1 text-[11px] leading-tight font-semibold">
-                    {advisor.db}
+                  <div>
+                    <span className="text-slate-500 block font-bold">&gt; DATABASE_ARCH:</span>
+                    <span className="text-blue-300 font-bold">{advisor.db}</span>
                   </div>
-                </div>
-              </div>
+                  <div>
+                    <span className="text-slate-500 block font-bold">&gt; DEPLOY_TARGET:</span>
+                    <span className="text-emerald-400 font-bold underline decoration-dotted">{advisor.hosting}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 block font-bold">&gt; CD_PIPELINE:</span>
+                    <span className="text-slate-300 leading-tight font-medium block">{advisor.strategy}</span>
+                  </div>
+               </div>
 
-              <div className="relative z-10">
-                <div className="text-slate-500 text-[10px] uppercase font-bold">DEPLOY HOSTING TARGET:</div>
-                <div className="text-emerald-400 font-sans mt-0.5 text-xs font-semibold">
-                  {advisor.hosting}
-                </div>
-              </div>
-
-              <div className="relative z-10">
-                <div className="text-slate-500 text-[10px] uppercase font-bold">RELIABILITY ASSURANCE:</div>
-                <p className="text-[11px] leading-normal text-slate-400 font-sans mt-1">
-                  {advisor.strategy}
-                </p>
-              </div>
+               <div className="absolute -right-4 -bottom-4 opacity-10 pointer-events-none">
+                  <div className="w-20 h-20 border-[10px] border-white rounded-full"></div>
+               </div>
             </div>
           </div>
         </div>
 
-        {/* Full screen popup with premium layout and high-level animations */}
-        <AnimatePresence>
-          {isDetailsOpen && (
-            <div className="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4 sm:p-6 md:p-10">
-              {/* Backdrop blur with simple fade transition */}
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                onClick={() => setIsDetailsOpen(false)}
-                className="fixed inset-0 bg-slate-950/85 backdrop-blur-md cursor-pointer"
-              />
+      </section>
 
-              {/* Modal Container */}
-              <motion.div
-                initial={{ transform: "scale(0.9) translateY(40px)", opacity: 0 }}
-                animate={{ transform: "scale(1) translateY(0px)", opacity: 1 }}
-                exit={{ transform: "scale(0.9) translateY(40px)", opacity: 0 }}
-                transition={{ type: "spring", stiffness: 220, damping: 25 }}
-                className="bg-white text-slate-800 border border-slate-200 rounded-3xl w-full max-w-4xl shadow-2xl relative overflow-hidden z-10 max-h-[90vh] flex flex-col"
-              >
-                {/* Visual Header Ribbon */}
-                <div className="h-2 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 w-full shrink-0" />
+      {/* Full screen popup with premium layout and high-level animations */}
+      <AnimatePresence>
+        {isDetailsOpen && (
+          <div className="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4 sm:p-6" id="blueprint-modal">
+            {/* Backdrop blur with simple fade transition */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsDetailsOpen(false)}
+              className="fixed inset-0 bg-slate-950/85 backdrop-blur-sm cursor-pointer"
+            />
 
-                {/* Content area */}
-                <div className="p-6 sm:p-10 overflow-y-auto flex-1 space-y-8">
-                  
-                  {/* Title & Icon Header */}
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-100 pb-6">
-                    <div className="flex items-center space-x-4">
-                      <div className="p-3.5 bg-blue-50 text-blue-700 rounded-2xl ring-4 ring-blue-50/50">
-                        {iconMap[currentSvc.icon] || <Layers size={28} className="text-blue-700" />}
-                      </div>
-                      <div>
-                        <span className="text-[10px] text-blue-700 uppercase font-mono tracking-widest font-extrabold block mb-1">
-                          Enterprise System Blueprint
-                        </span>
-                        <h2 className="font-display text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-                          {currentSvc.title}
-                        </h2>
-                      </div>
+            {/* Modal Container */}
+            <motion.div
+              initial={{ transform: "scale(0.95) translateY(20px)", opacity: 0 }}
+              animate={{ transform: "scale(1) translateY(0px)", opacity: 1 }}
+              exit={{ transform: "scale(0.95) translateY(20px)", opacity: 0 }}
+              transition={{ type: "spring", stiffness: 240, damping: 25 }}
+              className="bg-white text-slate-800 border border-slate-200 rounded-2xl w-full max-w-2xl shadow-2xl relative overflow-hidden z-10 max-h-[90vh] flex flex-col"
+            >
+              <div className="h-1.5 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 w-full shrink-0" />
+
+              <div className="p-6 sm:p-8 overflow-y-auto flex-1 space-y-6">
+                
+                {/* Title & Icon Header */}
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-100 pb-5">
+                  <div className="flex items-center space-x-3.5">
+                    <div className="p-3 bg-blue-50 text-blue-700 rounded-xl ring-4 ring-blue-50/40 shrink-0">
+                      {iconMap[currentSvc.icon] || <Layers size={22} className="text-blue-700" />}
                     </div>
-
-                    <button
-                      onClick={() => setIsDetailsOpen(false)}
-                      className="p-2.5 rounded-full bg-slate-100 hover:bg-red-50 hover:text-red-600 text-slate-400 hover:rotate-90 transition-all duration-300 border border-slate-200 shrink-0 self-end sm:self-auto cursor-pointer"
-                      title="Close details"
-                    >
-                      <X size={18} />
-                    </button>
-                  </div>
-
-                  {/* Body Content Columns */}
-                  <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
-                    
-                    {/* Primary Left Column */}
-                    <div className="md:col-span-7 space-y-6">
-                      <div className="space-y-3">
-                        <h3 className="font-mono text-xs uppercase text-slate-400 font-bold tracking-wider">
-                          Practice Description
-                        </h3>
-                        <p className="text-sm text-slate-705 leading-relaxed font-semibold">
-                          {currentSvc.description}
-                        </p>
-                      </div>
-
-                      <div className="space-y-3 pt-2 bg-slate-50/50 border border-slate-150 p-5 rounded-2xl leading-relaxed">
-                        <h3 className="font-mono text-xs uppercase text-blue-700 font-bold tracking-wider flex items-center space-x-1">
-                          <Laptop size={14} />
-                          <span>Delivery & Architecture Standards</span>
-                        </h3>
-                        <p className="text-xs text-slate-600 font-medium font-sans">
-                          {currentSvc.detailedDescription || `Our ${currentSvc.title} department coordinates high-velocity engineering sprint cycles directly backed by veteran architect reviews. We guarantee strict adherence to Clean Code concepts, secure variable storage, fully decoupled database indices, and defensive exception catching frameworks so your platform remains robust under extreme spikes.`}
-                        </p>
-                        <p className="text-xs text-slate-600 font-medium font-sans">
-                          Every component undergoes automatic accessibility validation checks, microservice stress-testing reviews, and multi-region continuous build pipeline triggers.
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Secondary Right Column */}
-                    <div className="md:col-span-5 space-y-6">
-                      
-                      {/* Key Capabilities */}
-                      <div className="space-y-3">
-                        <h3 className="font-mono text-xs uppercase text-slate-400 font-bold tracking-wider">
-                          In-scope Capabilities
-                        </h3>
-                        <div className="space-y-2">
-                          {currentSvc.features.map((feat, idx) => (
-                            <motion.div
-                              initial={{ opacity: 0, x: -10 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              transition={{ delay: idx * 0.05 }}
-                              key={idx} 
-                              className="bg-white border border-slate-150 p-2.5 rounded-xl shadow-sm flex items-start space-x-2 text-xs text-slate-700"
-                            >
-                              <Check size={14} className="text-blue-700 shrink-0 mt-0.5" />
-                              <span className="leading-tight font-medium">{feat}</span>
-                            </motion.div>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Stack Badges */}
-                      <div className="space-y-3">
-                        <h3 className="font-mono text-xs uppercase text-slate-400 font-bold tracking-wider flex items-center space-x-1">
-                          <Terminal size={14} />
-                          <span>Standard Technical Stack</span>
-                        </h3>
-                        <div className="flex flex-wrap gap-1.5">
-                          {(currentSvc.techStack || ["React 19", "TypeScript", "Tailwind CSS", "Firestore Ledger", "Vite Bundler", "Framer Motion", "GCP Edge"]).map((tech, idx) => (
-                            <span
-                              key={idx}
-                              className="px-2.5 py-1 text-[10px] sm:text-xs bg-slate-950 border border-slate-800 rounded-lg text-slate-300 font-mono text-white font-medium"
-                            >
-                              {tech}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-
+                    <div>
+                      <span className="text-[9px] text-blue-700 uppercase font-mono tracking-widest font-extrabold block mb-0.5">
+                        Enterprise System Blueprint
+                      </span>
+                      <h2 className="font-sans text-lg sm:text-xl font-black text-slate-900 tracking-tight">
+                        {currentSvc.title}
+                      </h2>
                     </div>
                   </div>
 
-                  {/* Actions Bar */}
-                  <div className="pt-6 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4">
-                    <p className="text-[10px] text-slate-450 font-mono text-center sm:text-left">
-                      Need custom parameters? Submit a Request Quote form to receive a personalized architecture proposal.
-                    </p>
-                    <button
-                      onClick={() => setIsDetailsOpen(false)}
-                      className="w-full sm:w-auto px-6 py-2.5 bg-blue-700 hover:bg-blue-800 text-white font-bold font-display rounded-xl text-xs cursor-pointer shadow-md transition-all text-center"
-                    >
-                      Acknowledge & Close Blueprint
-                    </button>
-                  </div>
-
+                  <button
+                    onClick={() => setIsDetailsOpen(false)}
+                    className="p-2 rounded-full bg-slate-100 hover:bg-red-50 hover:text-red-600 text-slate-400 hover:rotate-90 transition-all duration-300 border border-slate-200 shrink-0 cursor-pointer"
+                    title="Close details"
+                  >
+                    <X size={15} />
+                  </button>
                 </div>
-              </motion.div>
-            </div>
-          )}
-        </AnimatePresence>
 
+                {/* Body Content Columns */}
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+                  
+                  {/* Primary Left Column */}
+                  <div className="md:col-span-7 space-y-4">
+                    <div className="space-y-1">
+                      <h3 className="font-mono text-[9px] uppercase text-slate-400 font-bold tracking-wider">
+                        Practice Description
+                      </h3>
+                      <p className="text-xs sm:text-sm text-slate-705 leading-relaxed font-semibold">
+                        {currentSvc.description}
+                      </p>
+                    </div>
+
+                    <div className="space-y-2.5 pt-2 bg-slate-50/50 border border-slate-150 p-4 rounded-xl leading-relaxed">
+                      <h3 className="font-mono text-[9px] uppercase text-blue-700 font-bold tracking-wider flex items-center space-x-1.5">
+                        <Laptop size={12} />
+                        <span>Delivery & Architecture Standards</span>
+                      </h3>
+                      <p className="text-[11px] text-slate-600 font-medium leading-relaxed">
+                        {currentSvc.detailedDescription || `Our ${currentSvc.title} department coordinates high-velocity engineering sprint cycles directly backed by veteran architect reviews. We guarantee strict adherence to Clean Code concepts, secure variable storage, fully decoupled database indices, and defensive exception catching frameworks.`}
+                      </p>
+                      <p className="text-[11px] text-slate-600 font-medium leading-relaxed">
+                        Every component undergoes automatic accessibility validation checks, microservice stress-testing reviews, and multi-region continuous build pipeline triggers.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Secondary Right Column */}
+                  <div className="md:col-span-5 space-y-4">
+                    
+                    {/* Key Capabilities */}
+                    <div className="space-y-1.5">
+                      <h3 className="font-mono text-[9px] uppercase text-slate-400 font-bold tracking-wider">
+                        In-scope Capabilities
+                      </h3>
+                      <div className="space-y-1.5">
+                        {currentSvc.features.map((feat, idx) => (
+                          <div
+                            key={idx} 
+                            className="bg-white border border-slate-150 p-2 rounded-lg shadow-sm flex items-start space-x-2 text-xs text-slate-700"
+                          >
+                            <Check size={12} className="text-blue-700 shrink-0 mt-0.5" />
+                            <span className="leading-tight font-semibold text-[10.5px]">{feat}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Stack Badges */}
+                    <div className="space-y-1.5">
+                      <h3 className="font-mono text-[9px] uppercase text-slate-400 font-bold tracking-wider flex items-center space-x-1.5">
+                        <Terminal size={12} />
+                        <span>Standard Technical Stack</span>
+                      </h3>
+                      <div className="flex flex-wrap gap-1.5">
+                        {(currentSvc.techStack || ["React", "TypeScript", "Tailwind CSS", "Vite", "Cloud Integration"]).map((tech, idx) => (
+                          <span
+                            key={idx}
+                            className="px-2.5 py-0.5 text-[10px] bg-slate-900 border border-slate-850 rounded-md text-slate-200 font-mono font-medium"
+                          >
+                            {tech}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+
+                {/* Actions Bar */}
+                <div className="pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4 shrink-0">
+                  <p className="text-[9px] text-slate-450 font-mono text-center sm:text-left leading-snug">
+                    Need custom parameters? Submit a Request Quote form to receive a personalized architecture proposal.
+                  </p>
+                  <button
+                    onClick={() => setIsDetailsOpen(false)}
+                    className="w-full sm:w-auto px-5 py-2 bg-blue-700 hover:bg-blue-800 text-white font-bold font-sans rounded-xl text-xs cursor-pointer shadow transition-all text-center border-0"
+                  >
+                    Acknowledge & Close
+                  </button>
+                </div>
+
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+        </div>
       </div>
     </div>
   );

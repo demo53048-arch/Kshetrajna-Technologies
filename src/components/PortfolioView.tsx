@@ -170,13 +170,15 @@ export default function PortfolioView() {
               >
                 
                 {/* Image banner */}
-                <div className="relative aspect-[21/9] overflow-hidden border-b border-slate-100 bg-slate-50">
-                  <img
-                    src={selectedProject.image}
-                    alt={selectedProject.title}
-                    className="w-full h-full object-cover"
-                    referrerPolicy="no-referrer"
-                  />
+                <div className="relative w-full overflow-hidden bg-slate-100">
+                  <div className="aspect-video sm:aspect-[16/10] md:aspect-[21/9]">
+                    <img
+                      src={selectedProject.image}
+                      alt={selectedProject.title}
+                      className="w-full h-full object-cover"
+                      referrerPolicy="no-referrer"
+                    />
+                  </div>
                   <button
                     onClick={() => setSelectedProject(null)}
                     className="absolute top-4 right-4 p-2 bg-white/90 hover:bg-slate-100 text-slate-600 hover:text-slate-900 rounded-full border border-slate-200 backdrop-blur-sm transition-all focus:outline-none shadow-sm cursor-pointer"

@@ -159,13 +159,13 @@ export default function CareerView({ onApplySubmitted }: CareerViewProps) {
                 {/* Accordion trigger Row */}
                 <div
                   onClick={() => toggleExpand(job.id)}
-                  className="p-5 sm:p-6 flex items-center justify-between cursor-pointer hover:bg-slate-50 transition-colors gap-4"
+                  className="p-5 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between cursor-pointer hover:bg-slate-50 transition-colors gap-4"
                 >
-                  <div className="space-y-1.5 flex-1">
+                  <div className="space-y-1.5 flex-1 min-w-0">
                     <span className="text-[10px] bg-blue-50 border border-blue-100 text-blue-700 px-2.5 py-0.5 rounded font-mono uppercase font-bold">
                       {job.department}
                     </span>
-                    <h3 className="text-sm sm:text-base font-bold font-display text-slate-900 leading-tight mt-1.5">
+                    <h3 className="text-sm sm:text-base font-bold font-display text-slate-900 leading-tight mt-1.5 truncate">
                       {job.title}
                     </h3>
                     <div className="flex flex-wrap items-center gap-3 text-xs text-slate-550 font-mono">
@@ -178,9 +178,21 @@ export default function CareerView({ onApplySubmitted }: CareerViewProps) {
                     </div>
                   </div>
 
-                  <div className="flex items-center space-x-3 text-slate-500 shrink-0">
-                    <span className="hidden sm:inline text-xs text-slate-450">{isExpanded ? "Collapse" : "Expand details"}</span>
-                    {isExpanded ? <ChevronUp size={18} className="text-blue-705" /> : <ChevronDown size={18} className="text-slate-500" />}
+                  <div className="flex items-center flex-wrap gap-3 shrink-0">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedJob(job);
+                      }}
+                      className="px-3 py-2 bg-blue-700 text-white text-[11px] font-semibold rounded-xl hover:bg-blue-800 transition"
+                    >
+                      Apply in popup
+                    </button>
+                    <div className="flex items-center space-x-3 text-slate-500">
+                      <span className="hidden sm:inline text-xs text-slate-450">{isExpanded ? "Collapse" : "Expand details"}</span>
+                      {isExpanded ? <ChevronUp size={18} className="text-blue-700" /> : <ChevronDown size={18} className="text-slate-500" />}
+                    </div>
                   </div>
                 </div>
 
@@ -265,14 +277,30 @@ export default function CareerView({ onApplySubmitted }: CareerViewProps) {
               </button>
 
               <div className="p-6 sm:p-8 space-y-6 text-slate-800">
-                <div>
-                  <span className="text-[10px] text-blue-700 uppercase font-mono font-bold">APPLICATION ENTRANCE</span>
-                  <h3 className="text-lg sm:text-xl font-extrabold font-display text-slate-900 mt-1">
-                    Applying for: {selectedJob.title}
-                  </h3>
-                  <p className="text-slate-500 text-xs font-mono mt-0.5 font-semibold">
-                    Job ID: {selectedJob.id} | Dept: {selectedJob.department}
-                  </p>
+                <div className="grid grid-cols-1 xl:grid-cols-[1.4fr_1fr] gap-4 items-start">
+                  <div className="space-y-3">
+                    <span className="text-[10px] text-blue-700 uppercase font-mono font-bold">APPLICATION ENTRANCE</span>
+                    <h3 className="text-lg sm:text-xl font-extrabold font-display text-slate-900 mt-1">
+                      Applying for: {selectedJob.title}
+                    </h3>
+                    <p className="text-slate-500 text-xs font-mono mt-0.5 font-semibold">
+                      Job ID: {selectedJob.id} | Dept: {selectedJob.department}
+                    </p>
+                    <p className="text-sm text-slate-600 leading-relaxed max-w-xl">
+                      Begin your application with a quick, modern submission flow: upload your resume, add a cover note, and send it directly to the team for fast review.
+                    </p>
+                  </div>
+
+                  <div className="relative rounded-3xl overflow-hidden border border-slate-200 shadow-lg bg-slate-50">
+                    <img
+                      src="/KT.png"
+                      alt="Application entrance illustration"
+                      className="h-full w-full object-cover max-h-[180px]"
+                    />
+                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950/80 to-transparent p-4 text-white text-[11px] font-semibold">
+                      Application popup ready
+                    </div>
+                  </div>
                 </div>
 
                 {submitSuccess ? (
