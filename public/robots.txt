@@ -1,0 +1,38 @@
+# Kshetrajna Technologies SEO Robots Configuration
+# Last Updated: 2026-06-18
+
+# Default rules for all crawlers
+User-agent: *
+Allow: /
+Allow: /public/
+Allow: /assets/
+Disallow: /admin
+Disallow: /admin-panel
+Disallow: /private
+Disallow: /*.json$
+Disallow: /*?sort=
+Disallow: /*?filter=
+Crawl-delay: 1
+
+# Google-specific rules
+User-agent: Googlebot
+Allow: /
+Crawl-delay: 0.5
+
+# Bing-specific rules
+User-agent: Bingbot
+Allow: /
+Crawl-delay: 1
+
+# Block bad bots
+User-agent: MJ12bot
+User-agent: AhrefsBot
+User-agent: SemrushBot
+Disallow: /
+
+# Sitemap location
+Sitemap: https://kshetrajna-technologies.up.railway.app/sitemap.xml
+Sitemap: https://kshetrajna-technologies.up.railway.app/sitemap-blog.xml
+
+# Request rate for crawlers
+Request-rate: 30/1m
