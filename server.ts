@@ -19,8 +19,14 @@ const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
 const USE_SENDGRID = Boolean(SENDGRID_API_KEY);
 const staticPath = path.resolve("dist");
 
-if (!SMTP_USER || !SMTP_PASS) {
-  throw new Error("Missing SMTP_USER or SMTP_PASS environment variables in .env");
+if (USE_SENDGRID) {
+  if (!EMAIL_FROM) {
+    throw new Error("Missing EMAIL_FROM environment variable for SendGrid email provider.");
+  }
+} else {
+  if (!SMTP_USER || !SMTP_PASS) {
+    throw new Error("Missing SMTP_USER or SMTP_PASS environment variables in .env");
+  }
 }
 
 const transportOptions = {
