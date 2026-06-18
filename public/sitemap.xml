@@ -7,43 +7,43 @@
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://kshetrajna-technologies.up.railway.app/#about</loc>
+    <loc>https://kshetrajna-technologies.up.railway.app/about</loc>
     <lastmod>2026-06-18</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://kshetrajna-technologies.up.railway.app/#services</loc>
+    <loc>https://kshetrajna-technologies.up.railway.app/services</loc>
     <lastmod>2026-06-18</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://kshetrajna-technologies.up.railway.app/#plans</loc>
+    <loc>https://kshetrajna-technologies.up.railway.app/plans</loc>
     <lastmod>2026-06-18</lastmod>
-    <changefreq>bi-weekly</changefreq>
+    <changefreq>weekly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
-    <loc>https://kshetrajna-technologies.up.railway.app/#portfolio</loc>
+    <loc>https://kshetrajna-technologies.up.railway.app/portfolio</loc>
     <lastmod>2026-06-18</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://kshetrajna-technologies.up.railway.app/#blog</loc>
+    <loc>https://kshetrajna-technologies.up.railway.app/blog</loc>
     <lastmod>2026-06-18</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.75</priority>
   </url>
   <url>
-    <loc>https://kshetrajna-technologies.up.railway.app/#contact</loc>
+    <loc>https://kshetrajna-technologies.up.railway.app/contact</loc>
     <lastmod>2026-06-18</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://kshetrajna-technologies.up.railway.app/#career</loc>
+    <loc>https://kshetrajna-technologies.up.railway.app/career</loc>
     <lastmod>2026-06-18</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
