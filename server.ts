@@ -28,6 +28,14 @@ const transporter = nodemailer.createTransport({
     user: SMTP_USER,
     pass: SMTP_PASS,
   },
+  connectionTimeout: 10000,
+});
+
+transporter.verify().then(() => {
+  console.log(`SMTP connection verified for ${SMTP_HOST}:${SMTP_PORT}`);
+}).catch((error) => {
+  console.error("SMTP verify failed:", error);
+  console.error("Check Railway SMTP env vars and whether outbound SMTP is allowed.");
 });
 
 app.use(express.json());
