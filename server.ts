@@ -1,5 +1,6 @@
 import express from "express";
 import nodemailer from "nodemailer";
+import sgMail from "@sendgrid/mail";
 import dotenv from "dotenv";
 import path from "path";
 import type { ContactMessage } from "./src/types";
@@ -14,6 +15,8 @@ const SMTP_SECURE = process.env.SMTP_SECURE === "true" || SMTP_PORT === 465;
 const SMTP_USER = process.env.SMTP_USER;
 const SMTP_PASS = process.env.SMTP_PASS;
 const EMAIL_FROM = process.env.EMAIL_FROM ?? SMTP_USER;
+const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
+const USE_SENDGRID = Boolean(SENDGRID_API_KEY);
 const staticPath = path.resolve("dist");
 
 if (!SMTP_USER || !SMTP_PASS) {
@@ -42,25 +45,35 @@ if (SMTP_HOST === "smtp.gmail.com") {
   (transportOptions as any).service = "gmail";
 }
 
-console.log("SMTP config:", {
-  host: SMTP_HOST,
-  port: SMTP_PORT,
-  secure: SMTP_SECURE,
+if (USE_SENDGRID) {
+  sgMail.setApiKey(SENDGRID_API_KEY!);
+  console.log("Email provider: SendGrid API enabled.");
+} else {
+  console.log("Email provider: SMTP transport enabled.");
+}
+
+console.log("Email config:", {
+  provider: USE_SENDGRID ? "sendgrid" : "smtp",
+  host: USE_SENDGRID ? "sendgrid" : SMTP_HOST,
+  port: USE_SENDGRID ? "api" : SMTP_PORT,
+  secure: USE_SENDGRID ? "api" : SMTP_SECURE,
   user: SMTP_USER ? "[set]" : "[missing]",
   emailFrom: EMAIL_FROM,
 });
 
-const transporter = nodemailer.createTransport(transportOptions);
+const transporter = USE_SENDGRID ? null : nodemailer.createTransport(transportOptions);
 
-transporter.verify().then(() => {
-  console.log(`SMTP connection verified for ${SMTP_HOST}:${SMTP_PORT}`);
-}).catch((error) => {
-  console.error("SMTP verify failed for", SMTP_HOST, SMTP_PORT, "-", error);
-  console.error("Check Railway SMTP env vars and whether outbound SMTP is allowed.");
-  if (process.env.RAILWAY) {
-    console.error("Railway may block outbound SMTP connections. Consider using an API email provider instead.");
-  }
-});
+if (!USE_SENDGRID) {
+  transporter.verify().then(() => {
+    console.log(`SMTP connection verified for ${SMTP_HOST}:${SMTP_PORT}`);
+  }).catch((error) => {
+    console.error("SMTP verify failed for", SMTP_HOST, SMTP_PORT, "-", error);
+    console.error("Check Railway SMTP env vars and whether outbound SMTP is allowed.");
+    if (process.env.RAILWAY) {
+      console.error("Railway may block outbound SMTP connections. Use SENDGRID_API_KEY or another API provider instead.");
+    }
+  });
+}
 
 app.use(express.json());
 app.use(express.static(staticPath));
@@ -189,7 +202,7 @@ app.post("/api/send-email", async (req, res) => {
     `;
 
     const mailOptions = {
-      from: `Kshetrajna Technologies <${SMTP_USER}>`,
+      from: EMAIL_FROM || `Kshetrajna Technologies <${SMTP_USER}>`,
       replyTo: EMAIL_FROM || SMTP_USER,
       envelope: {
         from: SMTP_USER,
@@ -202,14 +215,25 @@ app.post("/api/send-email", async (req, res) => {
     };
 
     console.log("Sending email with options:", {
+      provider: USE_SENDGRID ? "sendgrid" : "smtp",
       from: mailOptions.from,
       replyTo: mailOptions.replyTo,
-      envelope: mailOptions.envelope,
       to: mailOptions.to,
       subject: mailOptions.subject,
     });
 
-    await transporter.sendMail(mailOptions);
+    if (USE_SENDGRID) {
+      await sgMail.send({
+        from: mailOptions.from,
+        replyTo: mailOptions.replyTo,
+        to: mailOptions.to,
+        subject: mailOptions.subject,
+        text: mailOptions.text,
+        html: mailOptions.html,
+      });
+    } else {
+      await transporter!.sendMail(mailOptions);
+    }
 
     return res.status(200).json({ success: true });
   } catch (error) {
