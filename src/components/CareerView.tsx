@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect } from "react";
-import { jobsData } from "../data";
+import { jobsData, companyDetails } from "../data";
 import { Job, Application } from "../types";
 import { db } from "../lib/firebase";
 import { collection, onSnapshot, query } from "firebase/firestore";
-import { Briefcase, MapPin, Calendar, Clock, DollarSign, ArrowRight, CheckCircle2, ChevronDown, ChevronUp, Upload, X, HelpCircle, FileText } from "lucide-react";
+import { Briefcase, MapPin, Calendar, Clock, DollarSign, ArrowRight, CheckCircle2, ChevronDown, ChevronUp, Upload, X, HelpCircle, FileText, User, Mail, Phone, MessageCircle, Send } from "lucide-react";
+import { isValidTenDigitPhone } from "../lib/validation";
 
 interface CareerViewProps {
   onApplySubmitted: (app: Application) => void;
@@ -90,6 +91,11 @@ export default function CareerView({ onApplySubmitted }: CareerViewProps) {
       return;
     }
 
+    if (!isValidTenDigitPhone(candidatePhone)) {
+      setErrorText("Please enter a valid 10-digit WhatsApp number without country code.");
+      return;
+    }
+
     setErrorText("");
     setIsSubmitting(true);
 
@@ -109,19 +115,6 @@ export default function CareerView({ onApplySubmitted }: CareerViewProps) {
     try {
       onApplySubmitted(newApp);
 
-      const response = await fetch("/api/send-email", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ type: "application", payload: newApp }),
-      });
-
-      const data = await response.json();
-      if (!response.ok || !data.success) {
-        throw new Error(data.error || "Failed to send application email.");
-      }
-
       setSubmitSuccess(true);
       setTimeout(() => {
         setSelectedJob(null);
@@ -135,7 +128,7 @@ export default function CareerView({ onApplySubmitted }: CareerViewProps) {
       }, 2800);
     } catch (err: any) {
       console.error("Career application failed:", err);
-      setErrorText(err?.message || "Something went wrong while sending your application.");
+      setErrorText(err?.message || "Something went wrong while saving your application.");
     } finally {
       setIsSubmitting(false);
     }
@@ -334,7 +327,7 @@ export default function CareerView({ onApplySubmitted }: CareerViewProps) {
                     </div>
                     <h4 className="text-base font-bold font-display text-slate-900">Application Logged Successfully!</h4>
                     <p className="text-xs text-slate-600 max-w-sm mx-auto leading-relaxed font-semibold">
-                      Thank you for submitting your profile, Mr/Ms. <strong>{candidateName}</strong>. Our management team (including CEO Dhruvik Vanol) will audit your submission and get in touch.
+                      Thank you for submitting your profile, Mr/Ms. <strong>{candidateName}</strong>. A confirmation will be sent to your WhatsApp number after our team reviews your application.
                     </p>
                   </div>
                 ) : (
@@ -343,39 +336,58 @@ export default function CareerView({ onApplySubmitted }: CareerViewProps) {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-slate-700 font-bold mb-1.5">Full Name *</label>
-                        <input
-                          type="text"
-                          required
-                          value={candidateName}
-                          onChange={(e) => setCandidateName(e.target.value)}
-                          placeholder="Rutvik Sharma"
-                          className="w-full bg-slate-55 bg-slate-50 border border-slate-200 text-slate-900 px-3.5 py-2.5 rounded-lg focus:outline-none focus:border-blue-700 focus:ring-1 focus:ring-blue-700 font-medium"
-                        />
+                        <div className="relative">
+                          <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                            <User size={16} />
+                          </span>
+                          <input
+                            type="text"
+                            required
+                            value={candidateName}
+                            onChange={(e) => setCandidateName(e.target.value)}
+                            placeholder="Rutvik Sharma"
+                            className="w-full bg-slate-50 border border-slate-200 text-slate-900 pl-10 pr-3 py-2.5 rounded-lg focus:outline-none focus:border-blue-700 focus:ring-1 focus:ring-blue-700 font-medium"
+                          />
+                        </div>
                       </div>
                       <div>
                         <label className="block text-slate-700 font-bold mb-1.5">Email Address *</label>
-                        <input
-                          type="email"
-                          required
-                          value={candidateEmail}
-                          onChange={(e) => setCandidateEmail(e.target.value)}
-                          placeholder="e.g. candidate@gmail.com"
-                          className="w-full bg-slate-50 border border-slate-200 text-slate-900 px-3.5 py-2.5 rounded-lg focus:outline-none focus:border-blue-700 focus:ring-1 focus:ring-blue-700 font-medium"
-                        />
+                        <div className="relative">
+                          <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                            <Mail size={16} />
+                          </span>
+                          <input
+                            type="email"
+                            required
+                            value={candidateEmail}
+                            onChange={(e) => setCandidateEmail(e.target.value)}
+                            placeholder="e.g. candidate@gmail.com"
+                            className="w-full bg-slate-50 border border-slate-200 text-slate-900 pl-10 pr-3 py-2.5 rounded-lg focus:outline-none focus:border-blue-700 focus:ring-1 focus:ring-blue-700 font-medium"
+                          />
+                        </div>
                       </div>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-slate-700 font-bold mb-1.5">Phone Number *</label>
-                        <input
-                          type="tel"
-                          required
-                          value={candidatePhone}
-                          onChange={(e) => setCandidatePhone(e.target.value)}
-                          placeholder="+91 98765 43210"
-                          className="w-full bg-slate-50 border border-slate-200 text-slate-900 px-3.5 py-2.5 rounded-lg focus:outline-none focus:border-blue-700 focus:ring-1 focus:ring-blue-700 font-medium"
-                        />
+                        <label className="block text-slate-700 font-bold mb-1.5">WhatsApp Number *</label>
+                        <div className="relative">
+                          <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                            <Phone size={16} />
+                          </span>
+                          <input
+                            type="tel"
+                            required
+                            inputMode="numeric"
+                            pattern="[0-9]{10}"
+                            minLength={10}
+                            maxLength={10}
+                            value={candidatePhone}
+                            onChange={(e) => setCandidatePhone(e.target.value)}
+                            placeholder="9876543210"
+                            className="w-full bg-slate-50 border border-slate-200 text-slate-900 pl-10 pr-3 py-2.5 rounded-lg focus:outline-none focus:border-blue-700 focus:ring-1 focus:ring-blue-700 font-medium"
+                          />
+                        </div>
                       </div>
                       <div>
                         <label className="block text-slate-700 font-bold mb-1.5">Years of Tech Experience *</label>
@@ -463,9 +475,10 @@ export default function CareerView({ onApplySubmitted }: CareerViewProps) {
                       </button>
                       <button
                         type="submit"
-                        className="px-6 py-2.5 bg-blue-700 hover:bg-blue-800 text-white font-bold rounded-lg text-xs cursor-pointer shadow-md"
+                        className="px-6 py-2.5 bg-blue-700 hover:bg-blue-800 text-white font-bold rounded-lg text-xs cursor-pointer shadow-md flex items-center justify-center space-x-2"
                       >
-                        Dispatch Application
+                        <span>Dispatch Application</span>
+                        <Send size={14} />
                       </button>
                     </div>
                   </form>

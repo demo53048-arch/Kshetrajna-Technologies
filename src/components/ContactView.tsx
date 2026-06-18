@@ -2,8 +2,9 @@ import React, { useState } from "react";
 import { motion } from "motion/react";
 import { companyDetails } from "../data";
 import { createMessageInDB } from "../lib/firebase";
+import { isValidTenDigitPhone } from "../lib/validation";
 import { ContactMessage } from "../types";
-import { MapPin, Phone, Mail, Send, CheckCircle2, ShieldAlert, Sparkles, Building2 } from "lucide-react";
+import { MapPin, Phone, Mail, Send, CheckCircle2, ShieldAlert, Sparkles, Building2, User, Briefcase, FileText, MessageCircle } from "lucide-react";
 
 interface ContactViewProps {
   onMessageSubmitted: (message: ContactMessage) => void;
@@ -37,8 +38,13 @@ export default function ContactView({ onMessageSubmitted }: ContactViewProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!name.trim() || !email.trim() || !subject.trim() || !messageText.trim()) {
+    if (!name.trim() || !email.trim() || !phone.trim() || !subject.trim() || !messageText.trim()) {
       alert("Please fill in all mandatory fields marked with *");
+      return;
+    }
+
+    if (!isValidTenDigitPhone(phone)) {
+      setErrorMessage("Please enter a valid 10-digit WhatsApp number without country code.");
       return;
     }
 
@@ -61,20 +67,6 @@ export default function ContactView({ onMessageSubmitted }: ContactViewProps) {
 
     try {
       await createMessageInDB(newMessage);
-
-      const response = await fetch("/api/send-email", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ message: newMessage }),
-      });
-
-      const responseBody = (await response.json()) as { success?: boolean; error?: string };
-
-      if (!response.ok || !responseBody.success) {
-        throw new Error(responseBody.error || "Failed to send confirmation email.");
-      }
 
       setStatus("success");
       setSuccess(true);
@@ -195,7 +187,7 @@ export default function ContactView({ onMessageSubmitted }: ContactViewProps) {
                 </div>
                 <h3 className="text-lg font-bold font-display text-slate-900">Inquiry Sent Successfully!</h3>
                 <p className="text-slate-600 text-xs sm:text-sm max-w-sm mx-auto leading-relaxed font-semibold">
-                  Thank you, <strong>{name}</strong>. Your message is recorded. You can view your sent inquiry instantly in the **Inbox** tab on the header!
+                  Thank you, <strong>{name}</strong>. Your message is recorded. We will send a confirmation to your WhatsApp number once our team reviews your inquiry.
                 </p>
               </div>
             ) : (
@@ -219,73 +211,108 @@ export default function ContactView({ onMessageSubmitted }: ContactViewProps) {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-slate-700 font-bold mb-1.5">Your Full Name *</label>
-                    <input
-                      type="text"
-                      required
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder="e.g. Anand Vyas"
-                      className="w-full bg-slate-50 border border-slate-200 text-slate-900 px-3.5 py-2.5 rounded-lg focus:outline-none focus:border-blue-700 focus:ring-1 focus:ring-blue-700 font-medium"
-                    />
+                    <div className="relative">
+                      <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                        <User size={16} />
+                      </span>
+                      <input
+                        type="text"
+                        required
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        placeholder="e.g. Anand Vyas"
+                        className="w-full bg-slate-50 border border-slate-200 text-slate-900 pl-10 pr-3 py-2.5 rounded-lg focus:outline-none focus:border-blue-700 focus:ring-1 focus:ring-blue-700 font-medium"
+                      />
+                    </div>
                   </div>
                   <div>
                     <label className="block text-slate-700 font-bold mb-1.5">Email Address *</label>
-                    <input
-                      type="email"
-                      required
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="anand.vyas@org.in"
-                      className="w-full bg-slate-50 border border-slate-200 text-slate-900 px-3.5 py-2.5 rounded-lg focus:outline-none focus:border-blue-700 focus:ring-1 focus:ring-blue-700 font-medium"
-                    />
+                    <div className="relative">
+                      <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                        <Mail size={16} />
+                      </span>
+                      <input
+                        type="email"
+                        required
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="anand.vyas@org.in"
+                        className="w-full bg-slate-50 border border-slate-200 text-slate-900 pl-10 pr-3 py-2.5 rounded-lg focus:outline-none focus:border-blue-700 focus:ring-1 focus:ring-blue-700 font-medium"
+                      />
+                    </div>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-slate-700 font-bold mb-1.5">Phone Number</label>
-                    <input
-                      type="tel"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      placeholder="+91 97000 00000"
-                      className="w-full bg-slate-50 border border-slate-200 text-slate-900 px-3.5 py-2.5 rounded-lg focus:outline-none focus:border-blue-700 focus:ring-1 focus:ring-blue-700 font-medium"
-                    />
+                    <label className="block text-slate-700 font-bold mb-1.5">WhatsApp Number *</label>
+                    <div className="relative">
+                      <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                        <Phone size={16} />
+                      </span>
+                      <input
+                        type="tel"
+                        required
+                        inputMode="numeric"
+                        pattern="[0-9]{10}"
+                        minLength={10}
+                        maxLength={10}
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        placeholder="9876543210"
+                        className="w-full bg-slate-50 border border-slate-200 text-slate-900 pl-10 pr-3 py-2.5 rounded-lg focus:outline-none focus:border-blue-700 focus:ring-1 focus:ring-blue-700 font-medium"
+                      />
+                    </div>
                   </div>
                   <div>
                     <label className="block text-slate-700 font-bold mb-1.5">Company / Agency Name</label>
-                    <input
-                      type="text"
-                      value={company}
-                      onChange={(e) => setCompany(e.target.value)}
-                      placeholder="Vyas Enterprises (Optional)"
-                      className="w-full bg-slate-50 border border-slate-200 text-slate-900 px-3.5 py-2.5 rounded-lg focus:outline-none focus:border-blue-700 focus:ring-1 focus:ring-blue-700 font-medium"
-                    />
+                    <div className="relative">
+                      <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                        <Briefcase size={16} />
+                      </span>
+                      <input
+                        type="text"
+                        value={company}
+                        onChange={(e) => setCompany(e.target.value)}
+                        placeholder="Vyas Enterprises (Optional)"
+                        className="w-full bg-slate-50 border border-slate-200 text-slate-900 pl-10 pr-3 py-2.5 rounded-lg focus:outline-none focus:border-blue-700 focus:ring-1 focus:ring-blue-700 font-medium"
+                      />
+                    </div>
                   </div>
                 </div>
 
                 <div>
                   <label className="block text-slate-700 font-bold mb-1.5">Inquiry Subject *</label>
-                  <input
-                    type="text"
-                    required
-                    value={subject}
-                    onChange={(e) => setSubject(e.target.value)}
-                    placeholder="SaaS Development partnership scope"
-                    className="w-full bg-slate-50 border border-slate-200 text-slate-900 px-3.5 py-2.5 rounded-lg focus:outline-none focus:border-blue-700 focus:ring-1 focus:ring-blue-700 font-medium"
-                  />
+                  <div className="relative">
+                    <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                      <FileText size={16} />
+                    </span>
+                    <input
+                      type="text"
+                      required
+                      value={subject}
+                      onChange={(e) => setSubject(e.target.value)}
+                      placeholder="SaaS Development partnership scope"
+                      className="w-full bg-slate-50 border border-slate-200 text-slate-900 pl-10 pr-3 py-2.5 rounded-lg focus:outline-none focus:border-blue-700 focus:ring-1 focus:ring-blue-700 font-medium"
+                    />
+                  </div>
                 </div>
 
                 <div>
                   <label className="block text-slate-700 font-bold mb-1.5">Detailed Message *</label>
-                  <textarea
-                    required
-                    rows={4}
-                    value={messageText}
-                    onChange={(e) => setMessageText(e.target.value)}
-                    placeholder="Describe your technical requirements, deadlines, or inquiries..."
-                    className="w-full bg-slate-50 border border-slate-200 text-slate-900 px-3.5 py-2.5 rounded-lg focus:outline-none focus:border-blue-700 focus:ring-1 focus:ring-blue-700 resize-none font-medium"
-                  />
+                  <div className="relative">
+                    <span className="pointer-events-none absolute top-3 left-3 text-slate-400">
+                      <MessageCircle size={16} />
+                    </span>
+                    <textarea
+                      required
+                      rows={4}
+                      value={messageText}
+                      onChange={(e) => setMessageText(e.target.value)}
+                      placeholder="Tell us more about your project, timeline, or help requirement."
+                      className="w-full bg-slate-50 border border-slate-200 text-slate-900 pl-10 pr-3 py-2.5 rounded-lg focus:outline-none focus:border-blue-700 focus:ring-1 focus:ring-blue-700 resize-none font-medium"
+                    />
+                  </div>
                 </div>
 
                 <div className="pt-2">

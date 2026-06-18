@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from "react";
+import { companyDetails } from "../data";
 import { StartedProject, ServicePlan } from "../types";
 import { createProjectInDB, db } from "../lib/firebase";
 import { collection, onSnapshot, query } from "firebase/firestore";
 import { motion, AnimatePresence } from "motion/react";
-import { CheckCircle2, ShieldCheck, CreditCard, ChevronRight, Briefcase, Sparkles, Building2, HelpCircle } from "lucide-react";
+import { isValidTenDigitPhone } from "../lib/validation";
+import { CheckCircle2, ShieldCheck, CreditCard, ChevronRight, Briefcase, Sparkles, Building2, HelpCircle, User, Mail, Phone, FileText } from "lucide-react";
 
 export default function PlansView() {
   const staticPlans: ServicePlan[] = [
@@ -93,8 +95,13 @@ export default function PlansView() {
     e.preventDefault();
     if (!selectedPlan) return;
 
-    if (!clientName.trim() || !clientEmail.trim()) {
-      setErrorMsg("Please fill in your name and email address.");
+    if (!clientName.trim() || !clientEmail.trim() || !clientPhone.trim()) {
+      setErrorMsg("Please fill in your name, email address, and 10-digit WhatsApp number.");
+      return;
+    }
+
+    if (!isValidTenDigitPhone(clientPhone)) {
+      setErrorMsg("Please enter a valid 10-digit WhatsApp number without country code.");
       return;
     }
 
@@ -117,19 +124,6 @@ export default function PlansView() {
     try {
       await createProjectInDB(newProject);
 
-      const response = await fetch("/api/send-email", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ type: "project", payload: newProject }),
-      });
-
-      const data = await response.json();
-      if (!response.ok || !data.success) {
-        throw new Error(data.error || "Failed to send project email.");
-      }
-
       setBuySuccess(true);
       setClientName("");
       setClientEmail("");
@@ -138,7 +132,7 @@ export default function PlansView() {
       setAdditionalFeatures("");
     } catch (err: any) {
       console.error(err);
-      setErrorMsg(err?.message || "Failed to write details to Firestore database or send confirmation email.");
+      setErrorMsg(err?.message || "Failed to save project details. Please retry.");
     } finally {
       setIsSubmitting(false);
     }
@@ -289,7 +283,7 @@ export default function PlansView() {
                     </div>
                     <h4 className="text-base font-bold font-display text-slate-900">Project Enrollment Initiated!</h4>
                     <p className="text-xs text-slate-600 max-w-md mx-auto leading-relaxed font-semibold">
-                      Your purchase intent has been officially logged to our Firestore system. One of our lead directors (Mr. Rutvik Kalasha / CEO Dhruvik Vanol) will retrieve your credentials and setup a personal Slack / Call channel.
+                      Your purchase intent has been successfully logged to our Firestore system. A WhatsApp confirmation will be sent to the number you provided.
                     </p>
                     <button
                       onClick={closeEnrollment}
@@ -308,57 +302,76 @@ export default function PlansView() {
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-slate-705 font-bold mb-1.5 flex items-center space-x-1">
-                          <CheckCircle2 size={12} className="text-blue-700" />
-                          <span>Representative Name *</span>
-                        </label>
-                        <input
-                          type="text"
-                          required
-                          value={clientName}
-                          onChange={(e) => setClientName(e.target.value)}
-                          placeholder="Anand Rajput"
-                          className="w-full bg-slate-50 border border-slate-200 text-slate-900 px-3.5 py-2.5 rounded-lg focus:outline-none focus:border-blue-700 focus:ring-1 focus:ring-blue-700 font-medium"
-                        />
+                        <label className="block text-slate-705 font-bold mb-1.5">Representative Name *</label>
+                        <div className="relative">
+                          <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                            <User size={16} />
+                          </span>
+                          <input
+                            type="text"
+                            required
+                            value={clientName}
+                            onChange={(e) => setClientName(e.target.value)}
+                            placeholder="Anand Rajput"
+                            className="w-full bg-slate-50 border border-slate-200 text-slate-900 pl-10 pr-3 py-2.5 rounded-lg focus:outline-none focus:border-blue-700 focus:ring-1 focus:ring-blue-700 font-medium"
+                          />
+                        </div>
                       </div>
                       
                       <div>
-                        <label className="block text-slate-705 font-bold mb-1.5 flex items-center space-x-1">
-                          <Building2 size={12} className="text-blue-700" />
-                          <span>Corporate Email Address *</span>
-                        </label>
-                        <input
-                          type="email"
-                          required
-                          value={clientEmail}
-                          onChange={(e) => setClientEmail(e.target.value)}
-                          placeholder="anand@rajputindustries.com"
-                          className="w-full bg-slate-50 border border-slate-200 text-slate-900 px-3.5 py-2.5 rounded-lg focus:outline-none focus:border-blue-700 focus:ring-1 focus:ring-blue-700 font-medium"
-                        />
+                        <label className="block text-slate-705 font-bold mb-1.5">Corporate Email Address *</label>
+                        <div className="relative">
+                          <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                            <Mail size={16} />
+                          </span>
+                          <input
+                            type="email"
+                            required
+                            value={clientEmail}
+                            onChange={(e) => setClientEmail(e.target.value)}
+                            placeholder="anand@rajputindustries.com"
+                            className="w-full bg-slate-50 border border-slate-200 text-slate-900 pl-10 pr-3 py-2.5 rounded-lg focus:outline-none focus:border-blue-700 focus:ring-1 focus:ring-blue-700 font-medium"
+                          />
+                        </div>
                       </div>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-slate-705 font-bold mb-1.5">Direct Call / WhatsApp</label>
-                        <input
-                          type="tel"
-                          value={clientPhone}
-                          onChange={(e) => setClientPhone(e.target.value)}
-                          placeholder="+91 97000 50000"
-                          className="w-full bg-slate-50 border border-slate-200 text-slate-900 px-3.5 py-2.5 rounded-lg focus:outline-none focus:border-blue-700 focus:ring-1 focus:ring-blue-700 font-medium"
-                        />
+                        <label className="block text-slate-705 font-bold mb-1.5">WhatsApp Number *</label>
+                        <div className="relative">
+                          <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                            <Phone size={16} />
+                          </span>
+                          <input
+                            type="tel"
+                            required
+                            inputMode="numeric"
+                            pattern="[0-9]{10}"
+                            minLength={10}
+                            maxLength={10}
+                            value={clientPhone}
+                            onChange={(e) => setClientPhone(e.target.value)}
+                            placeholder="9876543210"
+                            className="w-full bg-slate-50 border border-slate-200 text-slate-900 pl-10 pr-3 py-2.5 rounded-lg focus:outline-none focus:border-blue-700 focus:ring-1 focus:ring-blue-700 font-medium"
+                          />
+                        </div>
                       </div>
                       
                       <div>
                         <label className="block text-slate-705 font-bold mb-1.5">Company Entity Name</label>
-                        <input
-                          type="text"
-                          value={companyName}
-                          onChange={(e) => setCompanyName(e.target.value)}
-                          placeholder="Rajput Industries Private Ltd"
-                          className="w-full bg-slate-50 border border-slate-200 text-slate-900 px-3.5 py-2.5 rounded-lg focus:outline-none focus:border-blue-700 focus:ring-1 focus:ring-blue-700 font-medium"
-                        />
+                        <div className="relative">
+                          <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                            <Briefcase size={16} />
+                          </span>
+                          <input
+                            type="text"
+                            value={companyName}
+                            onChange={(e) => setCompanyName(e.target.value)}
+                            placeholder="Rajput Industries Private Ltd"
+                            className="w-full bg-slate-50 border border-slate-200 text-slate-900 pl-10 pr-3 py-2.5 rounded-lg focus:outline-none focus:border-blue-700 focus:ring-1 focus:ring-blue-700 font-medium"
+                          />
+                        </div>
                       </div>
                     </div>
 
