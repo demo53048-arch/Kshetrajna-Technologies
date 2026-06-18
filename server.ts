@@ -8,9 +8,9 @@ dotenv.config();
 
 const app = express();
 const PORT = Number(process.env.PORT ?? 5000);
-const SMTP_HOST = process.env.SMTP_HOST ?? "smtp.gmail.com";
-const SMTP_PORT = Number(process.env.SMTP_PORT ?? "587");
-const SMTP_SECURE = process.env.SMTP_SECURE === "true";
+const SMTP_HOST = process.env.SMTP_HOST ?? process.env.RAILWAY_SMTP_HOST ?? "smtp.gmail.com";
+const SMTP_PORT = Number(process.env.SMTP_PORT ?? process.env.RAILWAY_SMTP_PORT ?? "587");
+const SMTP_SECURE = process.env.SMTP_SECURE === "true" || SMTP_PORT === 465;
 const SMTP_USER = process.env.SMTP_USER;
 const SMTP_PASS = process.env.SMTP_PASS;
 const EMAIL_FROM = process.env.EMAIL_FROM ?? SMTP_USER;
@@ -20,7 +20,7 @@ if (!SMTP_USER || !SMTP_PASS) {
   throw new Error("Missing SMTP_USER or SMTP_PASS environment variables in .env");
 }
 
-const transporter = nodemailer.createTransport({
+const transportOptions = {
   host: SMTP_HOST,
   port: SMTP_PORT,
   secure: SMTP_SECURE,
@@ -29,13 +29,37 @@ const transporter = nodemailer.createTransport({
     pass: SMTP_PASS,
   },
   connectionTimeout: 10000,
+  greetingTimeout: 10000,
+  socketTimeout: 10000,
+  tls: {
+    rejectUnauthorized: false,
+  },
+  requireTLS: SMTP_PORT === 587,
+};
+
+if (SMTP_HOST === "smtp.gmail.com") {
+  // Prefer the named Gmail service so Nodemailer applies the expected defaults.
+  (transportOptions as any).service = "gmail";
+}
+
+console.log("SMTP config:", {
+  host: SMTP_HOST,
+  port: SMTP_PORT,
+  secure: SMTP_SECURE,
+  user: SMTP_USER ? "[set]" : "[missing]",
+  emailFrom: EMAIL_FROM,
 });
+
+const transporter = nodemailer.createTransport(transportOptions);
 
 transporter.verify().then(() => {
   console.log(`SMTP connection verified for ${SMTP_HOST}:${SMTP_PORT}`);
 }).catch((error) => {
-  console.error("SMTP verify failed:", error);
+  console.error("SMTP verify failed for", SMTP_HOST, SMTP_PORT, "-", error);
   console.error("Check Railway SMTP env vars and whether outbound SMTP is allowed.");
+  if (process.env.RAILWAY) {
+    console.error("Railway may block outbound SMTP connections. Consider using an API email provider instead.");
+  }
 });
 
 app.use(express.json());
