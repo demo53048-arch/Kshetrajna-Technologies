@@ -110,79 +110,82 @@ app.post("/api/send-email", async (req, res) => {
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>${emailSubjectMap[formType]}</title>
         <style>
-          @keyframes glowPulse {
-            0%, 100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4); }
-            50% { box-shadow: 0 0 0 24px rgba(59, 130, 246, 0); }
-          }
-          .pulse-border {
-            animation: glowPulse 6s ease-in-out infinite;
-          }
-          .fade-in {
-            animation: fadeIn 0.9s ease forwards;
-            opacity: 0;
-          }
-          @keyframes fadeIn {
-            to { opacity: 1; }
-          }
+          body { margin: 0; padding: 0; background: #f3f4f6; color: #111827; font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+          .wrapper { width: 100%; max-width: 720px; margin: 0 auto; padding: 24px; }
+          .card { border-radius: 28px; overflow: hidden; background: #ffffff; border: 1px solid rgba(148, 163, 184, 0.18); box-shadow: 0 20px 60px rgba(15, 23, 42, 0.08); }
+          .hero { padding: 32px; background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%); color: #ffffff; text-align: center; }
+          .hero h1 { margin: 0; font-size: 32px; line-height: 1.1; }
+          .hero p { margin: 16px auto 0; max-width: 520px; color: rgba(241, 245, 249, 0.88); font-size: 15px; }
+          .section { padding: 32px; }
+          .section h2 { margin: 0 0 20px; font-size: 22px; letter-spacing: -0.02em; }
+          .section p { margin: 0 0 20px; color: #475569; line-height: 1.75; }
+          .details { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
+          .details td { padding: 12px 14px; border-bottom: 1px solid #e2e8f0; font-size: 14px; color: #334155; }
+          .details .label { font-weight: 700; background: #f8fafc; color: #0f172a; width: 36%; }
+          .notice { margin-top: 24px; padding: 24px; border-radius: 24px; background: #eff6ff; border: 1px solid #dbeafe; }
+          .notice h3 { margin: 0 0 10px; font-size: 16px; color: #0f172a; }
+          .notice p { margin: 0; color: #334155; line-height: 1.75; }
+          .footer { padding: 24px 32px; background: #f8fafc; text-align: center; font-size: 13px; color: #64748b; }
+          .button { display: inline-block; margin-top: 18px; padding: 14px 28px; border-radius: 999px; background: #2563eb; color: #ffffff; text-decoration: none; font-weight: 700; }
+          a { color: #2563eb; text-decoration: none; }
         </style>
       </head>
-      <body style="font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background:#eef2ff; color:#0f172a; margin:0; padding:24px;">
-        <table width="100%" cellpadding="0" cellspacing="0" style="max-width:720px; margin:0 auto;">
-          <tr>
-            <td style="padding:0 0 18px; text-align:center;">
-              <div style="display:inline-block; padding:18px 28px; border-radius:999px; background:linear-gradient(135deg, #2563eb 0%, #38bdf8 100%); color:#ffffff; font-size:13px; letter-spacing:0.1em; text-transform:uppercase;">Kshetrajna Technologies</div>
-            </td>
-          </tr>
-          <tr>
-            <td>
-              <table width="100%" cellpadding="0" cellspacing="0" style="border-radius:32px; overflow:hidden; background:#ffffff; border:1px solid rgba(148, 163, 184, 0.18); box-shadow:0 24px 80px rgba(15, 23, 42, 0.08);">
-                <tr>
-                  <td style="padding:32px; background:linear-gradient(180deg, #0f172a 0%, #1e293b 100%); color:#f8fafc; text-align:center;">
-                    <h1 style="margin:0; font-size:28px; letter-spacing:0.02em;">${formType === "contact" ? "Inquiry Received" : formType === "application" ? "Application Received" : formType === "quote" ? "Quote Request Received" : "Project Request Received"}</h1>
-                    <p style="margin:12px 0 0; font-size:15px; color:rgba(241, 245, 249, 0.88);">Your request is in expert review. Expect a reply soon.</p>
-                    <div style="margin:26px auto 0; width:76px; height:6px; border-radius:999px; background:rgba(255,255,255,0.16);"><div style="width:48px; height:100%; border-radius:999px; background:linear-gradient(90deg, #60a5fa, #38bdf8); box-shadow:0 0 18px rgba(56, 189, 248, 0.45);"></div></div>
-                  </td>
-                </tr>
-                <tr>
-                  <td style="padding:32px;" class="fade-in">
-                    <p style="margin:0 0 18px; font-size:16px; line-height:1.75; color:#334155;">Hello <strong>${name}</strong>,</p>
-                    <p style="margin:0 0 24px; font-size:15px; line-height:1.8; color:#475569;">Thanks for reaching out. Here's a summary of the details we received from your ${formType} submission.</p>
-                    <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
-                      ${detailsHtml}
-                    </table>
-                    ${bodyText ? `
-                    <div style="margin-top:24px; padding:20px; border-radius:24px; background:linear-gradient(180deg, #eff6ff 0%, #ffffff 100%); border:1px solid #dbeafe;">
-                      <h2 style="margin:0 0 12px; font-size:17px; color:#0f172a;">Message details</h2>
-                      <p style="margin:0; font-size:15px; line-height:1.85; color:#334155; white-space:pre-wrap;">${bodyText}</p>
-                    </div>
-                    ` : ""}
-                    <div style="margin-top:30px; padding:24px; border-radius:26px; background:#f8fafc; border:1px solid #e2e8f0;" class="pulse-border">
-                      <p style="margin:0 0 8px; font-size:14px; color:#0f172a; font-weight:700;">What happens next?</p>
-                      <p style="margin:0; font-size:14px; line-height:1.8; color:#475569;">Our team will review this request and get back to you with a tailored response within one business day.</p>
-                    </div>
-                    <p style="margin:24px 0 0; font-size:14px; color:#64748b;">Need to make a change? Reply to this email or contact us at <a href="mailto:support@kshetrajna.in" style="color:#2563eb; text-decoration:none;">support@kshetrajna.in</a>.</p>
-                  </td>
-                </tr>
-                <tr>
-                  <td style="padding:24px 32px; background:#f8fafc; text-align:center; font-size:13px; color:#64748b;">
-                    <p style="margin:0;">Kshetrajna Technologies LLP • Botad, Gujarat</p>
-                  </td>
-                </tr>
+      <body>
+        <div class="wrapper">
+          <div class="card">
+            <div class="hero">
+              <div style="display:inline-block; padding: 10px 20px; border-radius: 999px; background: rgba(59, 130, 246, 0.12); color: #ffffff; font-size: 13px; letter-spacing: 0.12em; text-transform: uppercase;">Kshetrajna Technologies</div>
+              <h1>${formType === "contact" ? "Inquiry Received" : formType === "application" ? "Application Received" : formType === "quote" ? "Quote Request Received" : "Project Request Received"}</h1>
+              <p>Your request is in expert review. Expect a reply soon.</p>
+            </div>
+            <div class="section">
+              <h2>Hello ${name},</h2>
+              <p>Thanks for reaching out. We have received your ${formType} request and our team will follow up with you shortly.</p>
+              <table class="details">
+                ${detailsHtml}
               </table>
-            </td>
-          </tr>
-        </table>
+              ${bodyText ? `
+              <div class="notice">
+                <h3>Message details</h3>
+                <p style="white-space: pre-wrap;">${bodyText}</p>
+              </div>
+              ` : ""}
+              <div class="notice">
+                <h3>What happens next?</h3>
+                <p>Our team will review your request and get back to you with a tailored response within one business day. If you want to update your request, reply to this email or contact us at <a href="mailto:support@kshetrajna.in">support@kshetrajna.in</a>.</p>
+              </div>
+            </div>
+            <div class="footer">
+              Kshetrajna Technologies LLP • Botad, Gujarat
+            </div>
+          </div>
+        </div>
       </body>
       </html>
     `;
 
-    await transporter.sendMail({
-      from: EMAIL_FROM,
+    const mailOptions = {
+      from: `Kshetrajna Technologies <${SMTP_USER}>`,
+      replyTo: EMAIL_FROM || SMTP_USER,
+      envelope: {
+        from: SMTP_USER,
+        to: recipient,
+      },
       to: recipient,
       subject: emailSubjectMap[formType],
       text: plainTextMessage,
       html: htmlMessage,
+    };
+
+    console.log("Sending email with options:", {
+      from: mailOptions.from,
+      replyTo: mailOptions.replyTo,
+      envelope: mailOptions.envelope,
+      to: mailOptions.to,
+      subject: mailOptions.subject,
     });
+
+    await transporter.sendMail(mailOptions);
 
     return res.status(200).json({ success: true });
   } catch (error) {
