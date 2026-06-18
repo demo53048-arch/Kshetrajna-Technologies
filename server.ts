@@ -61,9 +61,9 @@ console.log("Email config:", {
   emailFrom: EMAIL_FROM,
 });
 
-const transporter = USE_SENDGRID ? null : nodemailer.createTransport(transportOptions);
+const transporter: nodemailer.Transporter | null = USE_SENDGRID ? null : nodemailer.createTransport(transportOptions);
 
-if (!USE_SENDGRID) {
+if (transporter) {
   transporter.verify().then(() => {
     console.log(`SMTP connection verified for ${SMTP_HOST}:${SMTP_PORT}`);
   }).catch((error) => {
