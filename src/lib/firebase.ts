@@ -23,7 +23,7 @@ import {
   getDocFromServer,
 } from "firebase/firestore";
 import firebaseConfig from "../../firebase-applet-config.json";
-import { ContactMessage, Application, Quote, StartedProject, Job, ServicePlan, CustomService } from "../types";
+import { ContactMessage, Application, Quote, StartedProject, Job, ServicePlan, CustomService, BlogPost, Project } from "../types";
 
 // Initialize Firebase App
 const app = initializeApp(firebaseConfig);
@@ -391,6 +391,62 @@ export async function updateCustomServiceInDB(service: CustomService) {
     await setDoc(doc(db, "custom_services", service.id), { ...service });
   } catch (error) {
     handleFirestoreError(error, OperationType.UPDATE, path);
+  }
+}
+
+// 9. Portfolio Projects Collection (CRUD)
+export async function createPortfolioInDB(project: Project) {
+  const path = `portfolio/${project.id}`;
+  try {
+    await setDoc(doc(db, "portfolio", project.id), { ...project });
+  } catch (error) {
+    handleFirestoreError(error, OperationType.CREATE, path);
+  }
+}
+
+export async function updatePortfolioInDB(project: Project) {
+  const path = `portfolio/${project.id}`;
+  try {
+    await setDoc(doc(db, "portfolio", project.id), { ...project });
+  } catch (error) {
+    handleFirestoreError(error, OperationType.UPDATE, path);
+  }
+}
+
+export async function deletePortfolioFromDB(id: string) {
+  const path = `portfolio/${id}`;
+  try {
+    await deleteDoc(doc(db, "portfolio", id));
+  } catch (error) {
+    handleFirestoreError(error, OperationType.DELETE, path);
+  }
+}
+
+// 10. Blog Posts Collection (CRUD)
+export async function createBlogPostInDB(post: BlogPost) {
+  const path = `blog_posts/${post.id}`;
+  try {
+    await setDoc(doc(db, "blog_posts", post.id), { ...post });
+  } catch (error) {
+    handleFirestoreError(error, OperationType.CREATE, path);
+  }
+}
+
+export async function updateBlogPostInDB(post: BlogPost) {
+  const path = `blog_posts/${post.id}`;
+  try {
+    await setDoc(doc(db, "blog_posts", post.id), { ...post });
+  } catch (error) {
+    handleFirestoreError(error, OperationType.UPDATE, path);
+  }
+}
+
+export async function deleteBlogPostFromDB(id: string) {
+  const path = `blog_posts/${id}`;
+  try {
+    await deleteDoc(doc(db, "blog_posts", id));
+  } catch (error) {
+    handleFirestoreError(error, OperationType.DELETE, path);
   }
 }
 

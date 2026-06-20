@@ -206,7 +206,7 @@ Allow: /
   "contactPoint": {
     "@type": "ContactPoint",
     "contactType": "Customer Support",
-    "telephone": "+91 9726459356",
+    "telephone": "+91 8849181691",
     "email": "kshetrajnatechnologies@gmail.com"
   },
   "sameAs": [
@@ -234,7 +234,7 @@ Allow: /
     "postalCode": "364710",
     "addressCountry": "IN"
   },
-  "telephone": "+91 9726459356",
+  "telephone": "+91 8849181691",
   "url": "https://kshetrajna-technologies.up.railway.app",
   "priceRange": "₹₹₹",
   "openingHoursSpecification": {
@@ -931,7 +931,7 @@ For feature icons: "[Feature]: [Brief description of what it shows]"
 ```
 Business Name: Kshetrajna Technologies LLP
 Address: 323/1 - 37, Bhaktinagar-1, Bhabhan Road, Malani Vadi, Botad, Bhavnagar, Gujarat 364710
-Phone: +91 9726459356
+Phone: +91 8849181691
 Website: https://kshetrajna-technologies.up.railway.app/
 Category: Software Developer, IT Consulting
 Hours: Mon-Fri 9:00 AM - 6:00 PM

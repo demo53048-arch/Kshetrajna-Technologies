@@ -1,18 +1,108 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { blogData } from "../data";
 import { BlogPost } from "../types";
+import { collection, onSnapshot, query, orderBy } from "firebase/firestore";
+import { db } from "../lib/firebase";
 import { Search, Calendar, User, Clock, ArrowLeft, BookOpen, Share2, CornerDownRight } from "lucide-react";
+
+function parseMarkdownLinks(text: string) {
+  const regex = /\[([^\]]+)\]\(([^\)]+)\)/g;
+  const parts: Array<string | React.ReactElement> = [];
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = regex.exec(text)) !== null) {
+    const [fullMatch, label, url] = match;
+    const index = match.index;
+    if (index > lastIndex) {
+      parts.push(text.slice(lastIndex, index));
+    }
+    parts.push(
+      <a key={`${label}-${index}`} href={url} className="text-blue-700 hover:text-blue-900 underline">
+        {label}
+      </a>
+    );
+    lastIndex = index + fullMatch.length;
+  }
+
+  if (lastIndex < text.length) {
+    parts.push(text.slice(lastIndex));
+  }
+
+  return parts.length > 0 ? parts : [text];
+}
+
+function renderBlogBlock(block: string, index: number) {
+  if (block.startsWith("### ")) {
+    return (
+      <h3 key={index} className="font-display text-lg sm:text-xl font-bold text-slate-900 mt-8 mb-4">
+        {block.replace("### ", "")}
+      </h3>
+    );
+  }
+
+  if (block.startsWith("## ")) {
+    return (
+      <h2 key={index} className="font-display text-2xl sm:text-3xl font-bold text-slate-900 mt-10 mb-5">
+        {block.replace("## ", "")}
+      </h2>
+    );
+  }
+
+  if (block.trim().startsWith("- ")) {
+    return (
+      <ul key={index} className="list-disc pl-6 space-y-2 text-slate-600 text-xs sm:text-sm leading-relaxed">
+        {block.trim().split(/\n/).map((item, itemIndex) => (
+          <li key={itemIndex}>{parseMarkdownLinks(item.replace(/^-\s+/, ""))}</li>
+        ))}
+      </ul>
+    );
+  }
+
+  return (
+    <p key={index} className="text-slate-600 text-xs sm:text-sm leading-relaxed" style={{ whiteSpace: "pre-wrap" }}>
+      {parseMarkdownLinks(block.replace(/\*\*/g, ""))}
+    </p>
+  );
+}
 
 export default function BlogView() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [activePost, setActivePost] = useState<BlogPost | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [blogPosts, setBlogPosts] = useState<BlogPost[]>(blogData);
 
-  const categories = ["All", "Technology Philosophy", "Cloud Engineering", "Artificial Intelligence"];
+  useEffect(() => {
+    const q = query(collection(db, "blog_posts"), orderBy("date", "desc"));
+    const unsubscribe = onSnapshot(q, (snap) => {
+      const firestorePosts: BlogPost[] = [];
+      snap.forEach((doc) => firestorePosts.push(doc.data() as BlogPost));
+
+      if (firestorePosts.length === 0) {
+        setBlogPosts(blogData);
+        return;
+      }
+
+      const merged = new Map<string, BlogPost>();
+      blogData.forEach((item) => merged.set(item.id, item));
+      firestorePosts.forEach((item) => merged.set(item.id, item));
+      setBlogPosts(Array.from(merged.values()));
+    }, (error) => {
+      console.error("Failed to load blog posts from Firestore:", error);
+      setBlogPosts(blogData);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const categories = [
+    "All",
+    ...Array.from(new Set(blogPosts.map((post) => post.category))).sort(),
+  ];
 
   // Filtering blogs
-  const filteredBlogs = blogData.filter((post) => {
+  const filteredBlogs = blogPosts.filter((post) => {
     const matchesSearch = post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           post.summary.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           post.content.toLowerCase().includes(searchQuery.toLowerCase());

@@ -35,7 +35,7 @@ I've created the critical SEO foundation files:
 2. Click "Manage your business on Google"
 3. Enter business name: "Kshetrajna Technologies LLP"
 4. Address: 323/1 - 37, Bhaktinagar-1, Bhabhan Road, Malani Vadi, Botad, Gujarat 364710
-5. Phone: +91 9726459356
+5. Phone: +91 8849181691
 6. Verify business (phone call or postcard)
 7. Add complete information:
    - 5-10 business photos

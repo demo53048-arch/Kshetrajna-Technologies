@@ -44,7 +44,7 @@ export default function HomeView({ setCurrentPage }: HomeViewProps) {
               transition={{ duration: 0.7, delay: 0.08, ease: [0.16, 1, 0.3, 1] }}
               className="font-display text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight text-slate-900 leading-[1.1] mb-6"
             >
-              Pioneering <span className="text-blue-700">Digital</span> Excellence.
+              AI Development & Software Development Company in Gandhinagar, Gujarat
             </motion.h1>
 
             {/* Paragraph Text */}
@@ -85,6 +85,21 @@ export default function HomeView({ setCurrentPage }: HomeViewProps) {
                 <span>Initiate Consultation</span>
               </motion.button>
             </motion.div>
+          </div>
+        </div>
+      </section>
+
+      {/* 1b. Primary Service Entry Links */}
+      <section className="py-10 bg-slate-50 border-b border-slate-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <p className="text-sm font-semibold text-slate-900 mb-4">Explore Our Dedicated Service Pages</p>
+            <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3 text-sm">
+              <a href="/ai-development-company-gandhinagar" className="inline-flex items-center rounded-full border border-blue-700 bg-blue-50 px-4 py-2 text-blue-700 hover:bg-blue-100 transition">AI Development Company Gandhinagar</a>
+              <a href="/software-development-company-gandhinagar" className="inline-flex items-center rounded-full border border-slate-300 bg-slate-100 px-4 py-2 text-slate-800 hover:bg-slate-200 transition">Software Development Company Gandhinagar</a>
+              <a href="/web-development-company-gujarat" className="inline-flex items-center rounded-full border border-slate-300 bg-slate-100 px-4 py-2 text-slate-800 hover:bg-slate-200 transition">Web Development Company Gujarat</a>
+              <a href="/mobile-app-development-gujarat" className="inline-flex items-center rounded-full border border-slate-300 bg-slate-100 px-4 py-2 text-slate-800 hover:bg-slate-200 transition">Mobile App Development Gujarat</a>
+            </div>
           </div>
         </div>
       </section>

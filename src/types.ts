@@ -9,6 +9,10 @@ export interface BlogPost {
   date: string;
   image: string;
   readTime: string;
+  faqs?: {
+    question: string;
+    answer: string;
+  }[];
 }
 
 export interface Project {
@@ -75,6 +79,38 @@ export interface Quote {
   date: string;
 }
 
+export interface ServiceFaqItem {
+  question: string;
+  answer: string;
+}
+
+export interface ServiceDetail {
+  title: string;
+  description: string;
+}
+
+export interface ServiceCta {
+  heading: string;
+  text: string;
+  buttonText: string;
+  buttonLink: string;
+}
+
+export interface DetailedServicePage {
+  id: string;
+  pageTitle: string;
+  headline: string;
+  subtitle: string;
+  description: string;
+  fullContent: string;
+  services: ServiceDetail[];
+  benefits: string[];
+  process: string[];
+  faqs: ServiceFaqItem[];
+  cta: ServiceCta;
+  highlights: string[];
+}
+
 export interface StartedProject {
   id: string;
   planId: string;
@@ -106,5 +142,29 @@ export interface CustomService {
   icon: string;
   detailedDescription?: string;
   techStack?: string[];
+}
+
+export interface ServiceFaqItem {
+  question: string;
+  answer: string;
+}
+
+export interface DetailedServicePage {
+  id: string;
+  pageTitle: string;
+  headline: string;
+  subtitle: string;
+  description: string;
+  fullContent: string;
+  benefits: string[];
+  process: string[];
+  faqs: ServiceFaqItem[];
+  cta: {
+    heading: string;
+    text: string;
+    buttonText: string;
+    buttonLink: string;
+  };
+  highlights: string[];
 }
 

@@ -65,7 +65,7 @@ Your website now has:
    Name: Kshetrajna Technologies LLP
    Address: 323/1 - 37, Bhaktinagar-1, Bhabhan Road, 
            Malani Vadi, Botad, Bhavnagar, Gujarat 364710
-   Phone: +91 9726459356
+   Phone: +91 8849181691
    Website: https://kshetrajna-technologies.up.railway.app/
 4. Verify business (Google will call your phone number)
 5. Complete all profile sections:

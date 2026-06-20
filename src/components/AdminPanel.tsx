@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { 
   ContactMessage, 
   Application, 
@@ -6,7 +6,9 @@ import {
   StartedProject,
   Job,
   ServicePlan,
-  CustomService
+  CustomService,
+  BlogPost,
+  Project
 } from "../types";
 import { 
   db,
@@ -30,7 +32,13 @@ import {
   deleteCustomServiceFromDB,
   updateJobInDB,
   updateServicePlanInDB,
-  updateCustomServiceInDB
+  updateCustomServiceInDB,
+  createPortfolioInDB,
+  updatePortfolioInDB,
+  deletePortfolioFromDB,
+  createBlogPostInDB,
+  updateBlogPostInDB,
+  deleteBlogPostFromDB
 } from "../lib/firebase";
 import { 
   collection, 
@@ -62,12 +70,14 @@ import {
   RefreshCw,
   Edit
 } from "lucide-react";
+import AdminSidebar from "./AdminSidebar";
 
 export default function AdminPanel() {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
+  
 
   // Firestore Collections State
   const [messages, setMessages] = useState<ContactMessage[]>([]);
@@ -77,9 +87,32 @@ export default function AdminPanel() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [plans, setPlans] = useState<ServicePlan[]>([]);
   const [services, setServices] = useState<CustomService[]>([]);
+  
+  // Static Data State (from data.ts)
+  // Firestore Portfolio Collection
+  const [firestorePortfolio, setFirestorePortfolio] = useState<Project[]>([]);
+  const [selectedPortfolio, setSelectedPortfolio] = useState<Project | null>(null);
+  
+  // Firestore Blog Collection
+  const [firestoreBlogPosts, setFirestoreBlogPosts] = useState<BlogPost[]>([]);
+  const [selectedFirestoreBlogPost, setSelectedFirestoreBlogPost] = useState<BlogPost | null>(null);
 
   // Navigation Panel Views
-  const [activeTab, setActiveTab] = useState<"inquiries" | "applications" | "quotes" | "projects" | "gmail" | "jobs" | "plans" | "services">("inquiries");
+  const [activeTab, setActiveTab] = useState<"inquiries" | "applications" | "quotes" | "projects" | "gmail" | "jobs" | "plans" | "services" | "portfolio-crud" | "blog-crud">("inquiries");
+
+  const navScrollRef = useRef<HTMLDivElement | null>(null);
+  const navItemRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+
+  useEffect(() => {
+    if (!activeTab) return;
+    const container = navScrollRef.current;
+    const el = navItemRefs.current[activeTab];
+    if (!container || !el) return;
+    const containerRect = container.getBoundingClientRect();
+    const elRect = el.getBoundingClientRect();
+    const offset = elRect.top - containerRect.top - (container.clientHeight / 2) + (el.clientHeight / 2);
+    container.scrollBy({ top: offset, behavior: 'smooth' });
+  }, [activeTab]);
 
   // Plan creation form states
   const [planName, setPlanName] = useState("");
@@ -98,6 +131,29 @@ export default function AdminPanel() {
   const [serviceDetailedDesc, setServiceDetailedDesc] = useState("");
   const [serviceTechStack, setServiceTechStack] = useState("");
   const [serviceCreateStatus, setServiceCreateStatus] = useState("");
+  
+  // Portfolio creation form states
+  const [portfolioTitle, setPortfolioTitle] = useState("");
+  const [portfolioClient, setPortfolioClient] = useState("");
+  const [portfolioDescription, setPortfolioDescription] = useState("");
+  const [portfolioCategory, setPortfolioCategory] = useState("");
+  const [portfolioServices, setPortfolioServices] = useState("");
+  const [portfolioYear, setPortfolioYear] = useState("");
+  const [portfolioResults, setPortfolioResults] = useState("");
+  const [portfolioImage, setPortfolioImage] = useState("");
+  const [portfolioCreateStatus, setPortfolioCreateStatus] = useState("");
+
+  // Blog creation form states
+  const [blogTitle, setBlogTitle] = useState("");
+  const [blogSummary, setBlogSummary] = useState("");
+  const [blogContent, setBlogContent] = useState("");
+  const [blogCategory, setBlogCategory] = useState("");
+  const [blogAuthor, setBlogAuthor] = useState("");
+  const [blogRole, setBlogRole] = useState("");
+  const [blogDate, setBlogDate] = useState("");
+  const [blogImage, setBlogImage] = useState("");
+  const [blogReadTime, setBlogReadTime] = useState("");
+  const [blogCreateStatus, setBlogCreateStatus] = useState("");
 
   // Selection states
   const [selectedMessage, setSelectedMessage] = useState<ContactMessage | null>(null);
@@ -219,6 +275,22 @@ export default function AdminPanel() {
       setServices(list.sort((a, b) => a.id.localeCompare(b.id)));
     }, (err) => console.error("Firestore listening error: custom_services", err));
 
+    // Realtime Portfolio Projects
+    const qPortfolio = query(collection(db, "portfolio"));
+    const unsubscribePortfolio = onSnapshot(qPortfolio, (snap) => {
+      const list: Project[] = [];
+      snap.forEach((doc) => list.push(doc.data() as Project));
+      setFirestorePortfolio(list.sort((a, b) => a.id.localeCompare(b.id)));
+    }, (err) => console.error("Firestore listening error: portfolio", err));
+
+    // Realtime Blog Posts
+    const qBlog = query(collection(db, "blog_posts"));
+    const unsubscribeBlog = onSnapshot(qBlog, (snap) => {
+      const list: BlogPost[] = [];
+      snap.forEach((doc) => list.push(doc.data() as BlogPost));
+      setFirestoreBlogPosts(list.sort((a, b) => b.id.localeCompare(a.id)));
+    }, (err) => console.error("Firestore listening error: blog_posts", err));
+
     return () => {
       unsubscribeMessages();
       unsubscribeApps();
@@ -227,6 +299,8 @@ export default function AdminPanel() {
       unsubscribeJobs();
       unsubscribePlans();
       unsubscribeServices();
+      unsubscribePortfolio();
+      unsubscribeBlog();
     };
   }, [isAdmin]);
 
@@ -435,7 +509,7 @@ export default function AdminPanel() {
     setMailSending(true);
     setMailStatus("Framing and sealing SMTP packages...");
 
-    let token = accessToken;
+    let token: string | null = accessToken;
     if (!token) {
       token = await refreshGoogleAccessToken();
       if (token) {
@@ -464,7 +538,7 @@ export default function AdminPanel() {
           <p style="font-size: 11px; color: #64748b;">
             Representative Office: Botad, Gujarat, India, 364710<br />
             Founder & MD: Mr. Rutvik Kalasha | CEO: Mr. Dhruvik Vanol<br />
-            Mo: +91 9726459356 | Email: kshetrajnatechnologies@gmail.com
+            Mo: +91 8849181691 | Email: kshetrajnatechnologies@gmail.com
           </p>
          </div>`
       ].join('\r\n');
@@ -606,19 +680,122 @@ export default function AdminPanel() {
     }
   };
 
+  // Portfolio CRUD Handlers
+  const handleCreatePortfolio = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!portfolioTitle.trim() || !portfolioClient.trim() || !portfolioDescription.trim()) {
+      setPortfolioCreateStatus("Mandatory fields are missing!");
+      return;
+    }
+    const id = selectedPortfolio?.id || "prj_" + Date.now();
+    const newPortfolio: Project = {
+      id,
+      title: portfolioTitle.trim(),
+      description: portfolioDescription.trim(),
+      client: portfolioClient.trim(),
+      category: (portfolioCategory.trim() || "Enterprise") as Project["category"],
+      image: portfolioImage.trim() || "",
+      services: portfolioServices.split(",").map(s => s.trim()).filter(Boolean),
+      year: portfolioYear.trim() || new Date().getFullYear().toString(),
+      results: portfolioResults.split("\n").map(r => r.trim()).filter(Boolean)
+    };
+    try {
+      if (selectedPortfolio) {
+        await updatePortfolioInDB(newPortfolio);
+        setPortfolioCreateStatus("SUCCESS: Portfolio project updated!");
+        setSelectedPortfolio(null);
+      } else {
+        await createPortfolioInDB(newPortfolio);
+        setPortfolioCreateStatus("SUCCESS: Portfolio project created!");
+      }
+      setPortfolioTitle("");
+      setPortfolioClient("");
+      setPortfolioDescription("");
+      setPortfolioCategory("");
+      setPortfolioServices("");
+      setPortfolioYear("");
+      setPortfolioResults("");
+      setPortfolioImage("");
+      setTimeout(() => setPortfolioCreateStatus(""), 4500);
+    } catch (err: any) {
+      setPortfolioCreateStatus(`Error: ${err.message}`);
+    }
+  };
+
+  const handleDeletePortfolio = async (id: string) => {
+    if (window.confirm("Are you sure you want to delete this portfolio project?")) {
+      try {
+        await deletePortfolioFromDB(id);
+        setPortfolioCreateStatus("Portfolio project deleted successfully!");
+        setTimeout(() => setPortfolioCreateStatus(""), 4500);
+      } catch (err: any) {
+        setPortfolioCreateStatus(`Error: ${err.message}`);
+      }
+    }
+  };
+
+  // Blog CRUD Handlers
+  const handleCreateBlogPost = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!blogTitle.trim() || !blogSummary.trim() || !blogContent.trim()) {
+      setBlogCreateStatus("Mandatory fields are missing!");
+      return;
+    }
+    const id = selectedFirestoreBlogPost?.id || "blog_" + Date.now();
+    const newBlogPost: BlogPost = {
+      id,
+      title: blogTitle.trim(),
+      summary: blogSummary.trim(),
+      content: blogContent.trim(),
+      category: blogCategory.trim() || "General",
+      author: blogAuthor.trim() || "Kshetrajna Technologies",
+      role: blogRole.trim() || "Technical Writer",
+      date: blogDate.trim() || new Date().toISOString().split('T')[0],
+      image: blogImage.trim() || "",
+      readTime: blogReadTime.trim() || "5",
+      faqs: []
+    };
+    try {
+      if (selectedFirestoreBlogPost) {
+        await updateBlogPostInDB(newBlogPost);
+        setBlogCreateStatus("SUCCESS: Blog post updated!");
+        setSelectedFirestoreBlogPost(null);
+      } else {
+        await createBlogPostInDB(newBlogPost);
+        setBlogCreateStatus("SUCCESS: Blog post created!");
+      }
+      setBlogTitle("");
+      setBlogSummary("");
+      setBlogContent("");
+      setBlogCategory("");
+      setBlogAuthor("");
+      setBlogRole("");
+      setBlogDate("");
+      setBlogImage("");
+      setBlogReadTime("");
+      setTimeout(() => setBlogCreateStatus(""), 4500);
+    } catch (err: any) {
+      setBlogCreateStatus(`Error: ${err.message}`);
+    }
+  };
+
+  const handleDeleteBlogPost = async (id: string) => {
+    if (window.confirm("Are you sure you want to delete this blog post?")) {
+      try {
+        await deleteBlogPostFromDB(id);
+        setBlogCreateStatus("Blog post deleted successfully!");
+        setTimeout(() => setBlogCreateStatus(""), 4500);
+      } catch (err: any) {
+        setBlogCreateStatus(`Error: ${err.message}`);
+      }
+    }
+  };
+
   return (
     <div className="bg-slate-50 text-slate-800 min-h-screen py-16" id="admin-panel-container">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
-        {/* Title Area */}
-        <div className="text-center max-w-3xl mx-auto mb-10">
-          <span className="text-xs uppercase font-mono tracking-widest text-blue-700 font-bold block mb-2">Internal Operations Command</span>
-          <h1 className="font-display text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">Executive Control Panel</h1>
-          <div className="h-1 w-24 bg-blue-700 mx-auto mt-4 rounded"></div>
-          <p className="mt-4 text-slate-600 text-xs sm:text-sm leading-relaxed font-semibold">
-            Securely authenticate to retrieve multi-collection Firestore streams and engage our custom client-side Gmail API Composer.
-          </p>
-        </div>
+        {/* Title Area removed per request */}
 
         {/* Lock screen / Authentication Block */}
         {!currentUser || !isAdmin ? (
@@ -669,88 +846,95 @@ export default function AdminPanel() {
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          <div className="relative">
+            <AdminSidebar 
+              items={[
+                { id: "inquiries", label: "Client Inquiries", icon: <Inbox size={16} />, badge: messages.length > 0 ? messages.length : null },
+                { id: "applications", label: "Job Applications", icon: <Briefcase size={16} />, badge: applications.length > 0 ? applications.length : null },
+                { id: "quotes", label: "Quotation Requests", icon: <FileText size={16} />, badge: quotes.length > 0 ? quotes.length : null },
+                { id: "projects", label: "Corporate Projects", icon: <CheckCircle2 size={16} />, badge: projects.length > 0 ? projects.length : null },
+                { id: "portfolio-crud", label: "Portfolio CRUD", icon: <Layers size={16} />, badge: firestorePortfolio.length > 0 ? firestorePortfolio.length : null },
+                { id: "blog-crud", label: "Blog CRUD", icon: <FileText size={16} />, badge: firestoreBlogPosts.length > 0 ? firestoreBlogPosts.length : null },
+                { id: "jobs", label: "Current Openings", icon: <Briefcase size={16} />, badge: jobs.length > 0 ? jobs.length : null },
+                { id: "plans", label: "Service Plans", icon: <Sliders size={16} />, badge: plans.length > 0 ? plans.length : null },
+                { id: "services", label: "Capabilities", icon: <Layers size={16} />, badge: services.length > 0 ? services.length : null },
+                { id: "gmail", label: "Gmail API", icon: <Mail size={16} />, badge: null },
+              ]}
+              activeTab={activeTab}
+              onTabChange={(tabId) => setActiveTab(tabId as any)}
+              onLogout={handleLogout}
+              companyName="Kshetrajna"
+              companySubtitle="Admin Panel"
+              userName={currentUser?.displayName || "Admin"}
+              userEmail={currentUser?.email || "admin@kshetrajna.com"}
+            />
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start lg:pl-72 pt-16 lg:pt-0 px-4 lg:px-0">
             
-            {/* L1: Left Control rail (5 columns) */}
-            <div className="lg:col-span-4 space-y-6">
-              
-              {/* Authenticated Persona badge */}
-              <div className="bg-slate-900 text-white p-5 rounded-2xl relative overflow-hidden shadow">
-                <div className="absolute right-[-10%] bottom-[-10%] w-24 h-24 border-[10px] border-slate-800 rounded-full opacity-40"></div>
-                <div className="flex items-center space-x-3.5 relative z-10">
-                  <img
-                    src={currentUser.photoURL || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"}
-                    alt={currentUser.displayName || "Admin User"}
-                    className="w-12 h-12 rounded-full border-2 border-blue-500 object-cover"
-                    referrerPolicy="no-referrer"
-                  />
-                  <div className="space-y-0.5">
-                    <span className="text-[9px] font-mono tracking-widest text-blue-400 uppercase font-extrabold flex items-center space-x-1">
-                      <Sparkles size={10} className="animate-pulse" />
-                      <span>Verified Master Admin</span>
-                    </span>
-                    <h4 className="font-display font-medium text-sm leading-tight text-white">{currentUser.displayName || "Rutvik / Dhruvik"}</h4>
-                    <p className="text-[10px] text-slate-400 font-mono font-semibold truncate max-w-[210px]" title={currentUser.email}>{currentUser.email}</p>
+            {/* L1: Left Control rail (5 columns) - HIDDEN, navigation now in sidebar */}
+            <div className="lg:col-span-4 hidden">
+              <div className="lg:sticky lg:top-6 space-y-6 self-start">
+                <div className="px-4">
+                  <p className="text-xs uppercase tracking-[0.35em] text-slate-400 font-semibold">Admin Panel</p>
+                  <h3 className="mt-2 text-lg font-bold tracking-tight">Database Collections</h3>
+                  <p className="mt-2 text-sm text-slate-500">Quick access to Firestore collection dashboards and CRUD sections.</p>
+                </div>
+
+                <div className="bg-white border border-slate-200 rounded-[32px] shadow-sm overflow-hidden">
+                  <div className="px-6 py-5 border-b border-slate-100 bg-slate-50">
+                    <p className="text-[10px] uppercase tracking-[0.4em] text-slate-400 font-bold">Navigation</p>
+                  </div>
+                    <div ref={navScrollRef} className="divide-y divide-slate-100 overflow-y-auto max-h-[60vh]">
+                    {[
+                      { id: "inquiries", label: "Client Inquiries", icon: <Inbox size={18} />, color: "bg-blue-50 text-blue-700", count: messages.length },
+                      { id: "applications", label: "Job Applications", icon: <Briefcase size={18} />, color: "bg-amber-50 text-amber-700", count: applications.length },
+                      { id: "quotes", label: "Quotation Requests", icon: <FileText size={18} />, color: "bg-purple-50 text-purple-700", count: quotes.length },
+                      { id: "projects", label: "Corporate Projects", icon: <CheckCircle2 size={18} />, color: "bg-emerald-50 text-emerald-700", count: projects.length },
+                      { id: "portfolio-crud", label: "Portfolio CRUD", icon: <Layers size={18} />, color: "bg-teal-50 text-teal-700", count: firestorePortfolio.length },
+                      { id: "blog-crud", label: "Blog CRUD", icon: <FileText size={18} />, color: "bg-orange-50 text-orange-700", count: firestoreBlogPosts.length },
+                      { id: "jobs", label: "Current Openings", icon: <Briefcase size={18} />, color: "bg-indigo-50 text-indigo-700", count: jobs.length },
+                      { id: "plans", label: "Service Plans", icon: <Sliders size={18} />, color: "bg-rose-50 text-rose-700", count: plans.length },
+                      { id: "services", label: "Capabilities", icon: <Layers size={18} />, color: "bg-cyan-50 text-cyan-700", count: services.length },
+                      { id: "gmail", label: "Gmail API", icon: <Mail size={18} />, color: "bg-red-50 text-red-700", count: "Live" },
+                    ].map((tab) => {
+                      const isSelected = activeTab === tab.id;
+                      return (
+                        <button
+                          key={tab.id}
+                          ref={(el) => { navItemRefs.current[tab.id] = el }}
+                          onClick={() => setActiveTab(tab.id as any)}
+                          className={`w-full flex items-center gap-3 px-6 py-4 text-left transition ${
+                            isSelected ? "bg-slate-50 text-slate-900" : "text-slate-600 hover:bg-slate-50 hover:text-slate-950"
+                          }`}
+                        >
+                          <span className={`inline-flex h-10 w-10 items-center justify-center rounded-2xl ${tab.color}`}>
+                            {tab.icon}
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-semibold truncate">{tab.label}</p>
+                          </div>
+                          <span className={`rounded-full px-2 py-1 text-[10px] font-semibold ${isSelected ? "bg-slate-100 text-slate-700" : "bg-slate-100 text-slate-500"}`}>
+                            {tab.count}
+                          </span>
+                        </button>
+                      );
+                    })}
+                    <div className="px-6 py-4 border-t border-slate-100 bg-slate-50">
+                      {currentUser && (
+                        <button
+                          onClick={handleLogout}
+                          className="w-full inline-flex items-center justify-center rounded-md border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                        >
+                          Disconnect
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
-
-                <div className="mt-4 pt-4 border-t border-slate-800 flex justify-between items-center relative z-10">
-                  <span className="text-[10px] font-mono text-emerald-400 font-bold flex items-center space-x-1">
-                    <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-ping"></span>
-                    <span>Safe Firestore Sync Online</span>
-                  </span>
-                  <button
-                    onClick={handleLogout}
-                    className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded text-[10px] font-bold transition-all cursor-pointer"
-                  >
-                    Disconnect
-                  </button>
-                </div>
               </div>
-
-              {/* Navigation Selector Rail */}
-              <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
-                <div className="p-4 border-b border-slate-100 bg-slate-50/50">
-                  <h3 className="text-xs uppercase font-mono font-bold tracking-wider text-slate-400">Database Collections</h3>
-                </div>
-                <div className="divide-y divide-slate-100 text-xs sm:text-sm font-semibold">
-                  {[
-                    { id: "inquiries", label: "Client Inquiries", count: messages.length, color: "text-blue-700 bg-blue-50" },
-                    { id: "applications", label: "Job Applications", count: applications.length, color: "text-amber-700 bg-amber-50" },
-                    { id: "quotes", label: "Quotation Requests", count: quotes.length, color: "text-purple-700 bg-purple-50" },
-                    { id: "projects", label: "Corporate Projects", count: projects.length, color: "text-emerald-700 bg-emerald-50" },
-                    { id: "jobs", label: "Current Openings", count: jobs.length, color: "text-indigo-700 bg-indigo-50" },
-                    { id: "plans", label: "Service Plans (CRUD)", count: plans.length, color: "text-rose-700 bg-rose-50" },
-                    { id: "services", label: "Capabilities Matrix (CRUD)", count: services.length, color: "text-cyan-700 bg-cyan-50" },
-                    { id: "gmail", label: "Gmail REST Api", count: "Live SDK", color: "text-red-700 bg-red-50" },
-                  ].map((tab) => {
-                    const isSelected = activeTab === tab.id;
-                    return (
-                      <button
-                        key={tab.id}
-                        onClick={() => setActiveTab(tab.id as any)}
-                        className={`w-full p-4 flex items-center justify-between text-left transition-all cursor-pointer ${
-                          isSelected
-                            ? "bg-slate-50 text-slate-900 border-l-4 border-blue-700"
-                            : "text-slate-600 hover:bg-slate-50/50 hover:text-slate-950"
-                        }`}
-                      >
-                        <span className="font-semibold">{tab.label}</span>
-                        <span className={`px-2 py-0.5 rounded-full font-mono text-[10px] font-bold ${
-                          isSelected ? tab.color : "bg-slate-100 text-slate-500"
-                        }`}>
-                          {tab.count}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
             </div>
 
-            {/* L2: Right Detail Stream panel (8 columns) */}
-            <div className="lg:col-span-8 bg-white border border-slate-205 rounded-2xl p-6 sm:p-8 shadow-sm">
+            {/* L2: Right Detail Stream panel (8 columns) - now full width */}
+            <div className="lg:col-span-12 bg-white border border-slate-205 rounded-2xl p-6 sm:p-8 shadow-sm">
               
               <AnimatePresence mode="wait">
                 {activeTab === "inquiries" && (
@@ -1958,6 +2142,290 @@ export default function AdminPanel() {
                   </motion.div>
                 )}
 
+                {activeTab === "portfolio-crud" && (
+                  <motion.div
+                    key="portfolio-crud"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="space-y-6"
+                  >
+                    <div>
+                      <h3 className="font-display text-xl font-bold text-slate-900">Portfolio Projects Management</h3>
+                      <p className="text-xs text-slate-500 font-mono mt-0.5">Create, update, and delete featured portfolio items.</p>
+                    </div>
+
+                    {portfolioCreateStatus && (
+                      <div className={`p-4 rounded-lg text-xs font-bold ${
+                        portfolioCreateStatus.includes("SUCCESS") ? "bg-emerald-50 border border-emerald-200 text-emerald-800" : "bg-red-50 border border-red-200 text-red-800"
+                      }`}>
+                        {portfolioCreateStatus}
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                      <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 space-y-4">
+                        <h4 className="text-sm font-bold text-teal-700">{selectedPortfolio ? "Edit Portfolio Project" : "Create Portfolio Project"}</h4>
+                        <form onSubmit={handleCreatePortfolio} className="space-y-3 text-xs">
+                          <div>
+                            <label className="block text-slate-700 font-bold mb-1">Project Title *</label>
+                            <input
+                              type="text"
+                              required
+                              value={portfolioTitle}
+                              onChange={(e) => setPortfolioTitle(e.target.value)}
+                              className="w-full bg-white border border-slate-200 text-slate-900 px-3 py-2 rounded-lg font-medium focus:outline-none focus:border-teal-600"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-slate-700 font-bold mb-1">Client / Organization *</label>
+                            <input
+                              type="text"
+                              required
+                              value={portfolioClient}
+                              onChange={(e) => setPortfolioClient(e.target.value)}
+                              className="w-full bg-white border border-slate-200 text-slate-900 px-3 py-2 rounded-lg font-medium focus:outline-none focus:border-teal-600"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-slate-700 font-bold mb-1">Project Summary *</label>
+                            <textarea
+                              rows={3}
+                              required
+                              value={portfolioDescription}
+                              onChange={(e) => setPortfolioDescription(e.target.value)}
+                              className="w-full bg-white border border-slate-200 text-slate-900 px-3 py-2 rounded-lg font-medium focus:outline-none focus:border-teal-600 resize-none"
+                            />
+                          </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                              <label className="block text-slate-700 font-bold mb-1">Category</label>
+                              <input
+                                type="text"
+                                value={portfolioCategory}
+                                onChange={(e) => setPortfolioCategory(e.target.value)}
+                                className="w-full bg-white border border-slate-200 text-slate-900 px-3 py-2 rounded-lg font-medium focus:outline-none focus:border-teal-600"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-slate-700 font-bold mb-1">Year</label>
+                              <input
+                                type="number"
+                                value={portfolioYear}
+                                onChange={(e) => setPortfolioYear(e.target.value)}
+                                className="w-full bg-white border border-slate-200 text-slate-900 px-3 py-2 rounded-lg font-medium focus:outline-none focus:border-teal-600"
+                              />
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-slate-700 font-bold mb-1">Technology / Services Used</label>
+                            <input
+                              type="text"
+                              value={portfolioServices}
+                              onChange={(e) => setPortfolioServices(e.target.value)}
+                              placeholder="Comma separated"
+                              className="w-full bg-white border border-slate-200 text-slate-900 px-3 py-2 rounded-lg font-medium focus:outline-none focus:border-teal-600"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-slate-700 font-bold mb-1">Key Results / Outcomes</label>
+                            <textarea
+                              rows={3}
+                              value={portfolioResults}
+                              onChange={(e) => setPortfolioResults(e.target.value)}
+                              placeholder="One result per line"
+                              className="w-full bg-white border border-slate-200 text-slate-900 px-3 py-2 rounded-lg font-mono text-[11px] focus:outline-none focus:border-teal-600 resize-none"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-slate-700 font-bold mb-1">Image URL</label>
+                            <input
+                              type="text"
+                              value={portfolioImage}
+                              onChange={(e) => setPortfolioImage(e.target.value)}
+                              placeholder="https://..."
+                              className="w-full bg-white border border-slate-200 text-slate-900 px-3 py-2 rounded-lg font-medium focus:outline-none focus:border-teal-600"
+                            />
+                          </div>
+                          <div className="flex flex-col sm:flex-row gap-2 pt-1">
+                            <button
+                              type="submit"
+                              className="flex-1 px-5 py-2.5 bg-teal-700 hover:bg-teal-800 text-white font-bold rounded-xl shadow cursor-pointer transition-all hover:scale-[1.01]"
+                            >
+                              {selectedPortfolio ? "Update Project" : "Create Project"}
+                            </button>
+                            {selectedPortfolio && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSelectedPortfolio(null);
+                                  setPortfolioTitle("");
+                                  setPortfolioClient("");
+                                  setPortfolioDescription("");
+                                  setPortfolioCategory("");
+                                  setPortfolioServices("");
+                                  setPortfolioYear("");
+                                  setPortfolioResults("");
+                                  setPortfolioImage("");
+                                }}
+                                className="px-4 py-2.5 border border-slate-300 hover:bg-slate-150 text-slate-700 font-bold rounded-xl shadow cursor-pointer transition-all bg-white"
+                              >
+                                Cancel Edit
+                              </button>
+                            )}
+                          </div>
+                        </form>
+                      </div>
+
+                      <div className="space-y-4">
+                        <h4 className="text-xs uppercase font-mono tracking-wider text-slate-400 font-bold border-b border-slate-100 pb-2">Projects in Firestore</h4>
+                        <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
+                          <div className="p-4 bg-slate-50 border-b border-slate-200">
+                            <h4 className="text-sm font-bold text-teal-700">Projects in Firestore</h4>
+                          </div>
+                          <div className="max-h-96 overflow-y-auto">
+                            {firestorePortfolio.length === 0 ? (
+                              <div className="p-4 text-center text-xs text-slate-500">No projects yet</div>
+                            ) : (
+                              firestorePortfolio.map((proj) => (
+                                <div key={proj.id} className="p-3 border-b border-slate-100 hover:bg-slate-50 cursor-pointer">
+                                  <div className="flex justify-between items-start mb-1">
+                                    <p className="font-semibold text-xs text-slate-900">{proj.title}</p>
+                                    <div className="flex gap-1">
+                                      <button
+                                        onClick={() => {
+                                          setSelectedPortfolio(proj);
+                                          setPortfolioTitle(proj.title);
+                                          setPortfolioClient(proj.client);
+                                          setPortfolioDescription(proj.description);
+                                          setPortfolioCategory(proj.category);
+                                          setPortfolioServices(proj.services.join(", "));
+                                          setPortfolioYear(proj.year.toString());
+                                          setPortfolioResults(proj.results.join("\n"));
+                                          setPortfolioImage(proj.image);
+                                        }}
+                                        className="px-1.5 py-0.5 bg-teal-100 hover:bg-teal-200 text-teal-700 text-[9px] font-bold rounded"
+                                      >
+                                        Edit
+                                      </button>
+                                      <button onClick={() => handleDeletePortfolio(proj.id)} className="px-1.5 py-0.5 bg-red-100 hover:bg-red-200 text-red-700 text-[9px] font-bold rounded">Delete</button>
+                                    </div>
+                                  </div>
+                                  <p className="text-[9px] text-slate-600">{proj.client} • {proj.year}</p>
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+
+                {activeTab === "blog-crud" && (
+                  <motion.div
+                    key="blog-crud"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="space-y-6"
+                  >
+                    <div>
+                      <h3 className="font-display text-xl font-bold text-slate-900">Blog Posts Management</h3>
+                      <p className="text-xs text-slate-500 font-mono mt-0.5">Create, update, and delete blog articles</p>
+                    </div>
+
+                    {blogCreateStatus && (
+                      <div className={`p-4 rounded-lg text-xs font-bold ${
+                        blogCreateStatus.includes("SUCCESS") ? "bg-orange-100 text-orange-800" : "bg-red-100 text-red-800"
+                      }`}>
+                        {blogCreateStatus}
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                      {/* Create/Edit Form */}
+                      <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 space-y-3 max-h-96 overflow-y-auto">
+                        <h4 className="text-sm font-bold text-orange-700">{selectedFirestoreBlogPost ? "Edit Post" : "Create Post"}</h4>
+                        <form onSubmit={handleCreateBlogPost} className="space-y-2 text-xs">
+                          <div>
+                            <label className="block text-[9px] uppercase font-bold text-slate-600 mb-1">Title *</label>
+                            <input type="text" value={blogTitle} onChange={(e) => setBlogTitle(e.target.value)} className="w-full px-2 py-1.5 border border-slate-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-orange-500" />
+                          </div>
+                          <div>
+                            <label className="block text-[9px] uppercase font-bold text-slate-600 mb-1">Summary *</label>
+                            <textarea value={blogSummary} onChange={(e) => setBlogSummary(e.target.value)} rows={2} className="w-full px-2 py-1.5 border border-slate-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-orange-500" />
+                          </div>
+                          <div>
+                            <label className="block text-[9px] uppercase font-bold text-slate-600 mb-1">Content *</label>
+                            <textarea value={blogContent} onChange={(e) => setBlogContent(e.target.value)} rows={4} className="w-full px-2 py-1.5 border border-slate-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-orange-500" />
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <label className="block text-[9px] uppercase font-bold text-slate-600 mb-1">Category</label>
+                              <input type="text" value={blogCategory} onChange={(e) => setBlogCategory(e.target.value)} className="w-full px-2 py-1.5 border border-slate-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-orange-500" />
+                            </div>
+                            <div>
+                              <label className="block text-[9px] uppercase font-bold text-slate-600 mb-1">Read Time (min)</label>
+                              <input type="number" value={blogReadTime} onChange={(e) => setBlogReadTime(e.target.value)} className="w-full px-2 py-1.5 border border-slate-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-orange-500" />
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <label className="block text-[9px] uppercase font-bold text-slate-600 mb-1">Author</label>
+                              <input type="text" value={blogAuthor} onChange={(e) => setBlogAuthor(e.target.value)} className="w-full px-2 py-1.5 border border-slate-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-orange-500" />
+                            </div>
+                            <div>
+                              <label className="block text-[9px] uppercase font-bold text-slate-600 mb-1">Role</label>
+                              <input type="text" value={blogRole} onChange={(e) => setBlogRole(e.target.value)} className="w-full px-2 py-1.5 border border-slate-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-orange-500" />
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-[9px] uppercase font-bold text-slate-600 mb-1">Date</label>
+                            <input type="date" value={blogDate} onChange={(e) => setBlogDate(e.target.value)} className="w-full px-2 py-1.5 border border-slate-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-orange-500" />
+                          </div>
+                          <div>
+                            <label className="block text-[9px] uppercase font-bold text-slate-600 mb-1">Image URL</label>
+                            <input type="text" value={blogImage} onChange={(e) => setBlogImage(e.target.value)} className="w-full px-2 py-1.5 border border-slate-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-orange-500" />
+                          </div>
+                          <button type="submit" className="w-full px-2 py-1.5 bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold rounded transition-colors">
+                            {selectedFirestoreBlogPost ? "Update Post" : "Create Post"}
+                          </button>
+                          {selectedFirestoreBlogPost && (
+                            <button type="button" onClick={() => setSelectedFirestoreBlogPost(null)} className="w-full px-2 py-1.5 bg-slate-300 hover:bg-slate-400 text-slate-700 text-xs font-bold rounded transition-colors">
+                              Cancel Edit
+                            </button>
+                          )}
+                        </form>
+                      </div>
+
+                      {/* Posts List */}
+                      <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
+                        <div className="p-4 bg-slate-50 border-b border-slate-200">
+                          <h4 className="text-sm font-bold text-orange-700">Posts in Firestore</h4>
+                        </div>
+                        <div className="max-h-96 overflow-y-auto">
+                          {firestoreBlogPosts.length === 0 ? (
+                            <div className="p-4 text-center text-xs text-slate-500">No posts yet</div>
+                          ) : (
+                            firestoreBlogPosts.map((post) => (
+                              <div key={post.id} className="p-3 border-b border-slate-100 hover:bg-slate-50 cursor-pointer">
+                                <div className="flex justify-between items-start mb-1">
+                                  <p className="font-semibold text-xs text-slate-900 line-clamp-1">{post.title}</p>
+                                  <div className="flex gap-1">
+                                    <button onClick={() => { setSelectedFirestoreBlogPost(post); setBlogTitle(post.title); setBlogSummary(post.summary); setBlogContent(post.content); setBlogCategory(post.category); setBlogAuthor(post.author); setBlogRole(post.role); setBlogDate(post.date); setBlogImage(post.image); setBlogReadTime(post.readTime.toString()); }} className="px-1.5 py-0.5 bg-orange-100 hover:bg-orange-200 text-orange-700 text-[9px] font-bold rounded">Edit</button>
+                                    <button onClick={() => handleDeleteBlogPost(post.id)} className="px-1.5 py-0.5 bg-red-100 hover:bg-red-200 text-red-700 text-[9px] font-bold rounded">Delete</button>
+                                  </div>
+                                </div>
+                                <p className="text-[9px] text-slate-600">{post.category} • {post.readTime}min</p>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+
                 {activeTab === "services" && (
                   <motion.div
                     key="services"
@@ -2186,6 +2654,9 @@ export default function AdminPanel() {
             </div>
 
           </div>
+
+        </div>
+
         )}
 
       </div>

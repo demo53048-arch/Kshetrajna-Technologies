@@ -1,18 +1,44 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { projectsData } from "../data";
 import { Project } from "../types";
+import { collection, onSnapshot, query, orderBy } from "firebase/firestore";
+import { db } from "../lib/firebase";
 import { Calendar, User, Eye, ArrowUpRight, X, Sparkles, CheckCircle2 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
 export default function PortfolioView() {
   const [filter, setFilter] = useState<string>("All");
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [portfolioProjects, setPortfolioProjects] = useState<Project[]>(projectsData);
 
-  const categories = ["All", "Enterprise", "Web Solutions", "Cloud & DevOps", "AI & Analytics"];
+  useEffect(() => {
+    const q = query(collection(db, "portfolio"), orderBy("year", "desc"));
+    const unsubscribe = onSnapshot(q, (snap) => {
+      const firestoreProjects: Project[] = [];
+      snap.forEach((doc) => firestoreProjects.push(doc.data() as Project));
+
+      if (firestoreProjects.length === 0) {
+        setPortfolioProjects(projectsData);
+        return;
+      }
+
+      const merged = new Map<string, Project>();
+      projectsData.forEach((item) => merged.set(item.id, item));
+      firestoreProjects.forEach((item) => merged.set(item.id, item));
+      setPortfolioProjects(Array.from(merged.values()));
+    }, (error) => {
+      console.error("Failed to load portfolio items from Firestore:", error);
+      setPortfolioProjects(projectsData);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const categories = ["All", ...Array.from(new Set(portfolioProjects.map((p) => p.category))).sort()];
 
   const filteredProjects = filter === "All"
-    ? projectsData
-    : projectsData.filter((p) => p.category === filter);
+    ? portfolioProjects
+    : portfolioProjects.filter((p) => p.category === filter);
 
   return (
     <div className="bg-slate-50 text-slate-800 py-16" id="portfolio-view-container">

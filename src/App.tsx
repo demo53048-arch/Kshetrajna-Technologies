@@ -12,7 +12,9 @@ import BlogView from "./components/BlogView";
 import CareerView from "./components/CareerView";
 import ContactView from "./components/ContactView";
 import AdminPanel from "./components/AdminPanel";
-import { ContactMessage, Application } from "./types";
+import ServiceLandingPage from "./components/ServiceLandingPage";
+import { detailedServicePages } from "./data-expanded";
+import { ContactMessage, Application, DetailedServicePage } from "./types";
 import { createApplicationInDB } from "./lib/firebase";
 
 // Seed initial values to make testing interactive and visually satisfying from the first click!
@@ -56,6 +58,10 @@ export default function App() {
     "career",
     "contact",
     "admin-panel",
+    "ai-development-company-gandhinagar",
+    "software-development-company-gandhinagar",
+    "web-development-company-gujarat",
+    "mobile-app-development-gujarat",
   ];
 
   const normalizeRoute = (raw: string | null | undefined): string | null => {
@@ -152,6 +158,17 @@ export default function App() {
     url.search = "";
     url.hash = "";
     window.history.replaceState(null, "", `${url.origin}${pagePath}${url.search}${url.hash}`);
+
+    if (servicePages[currentPage]) {
+      const pageTitle = servicePages[currentPage].pageTitle;
+      document.title = pageTitle;
+      const canonicalLink = document.querySelector('link[rel="canonical"]');
+      if (canonicalLink) {
+        canonicalLink.setAttribute("href", `${url.origin}${pagePath}`);
+      }
+    } else if (currentPage === "home") {
+      document.title = "AI Development Company in Gandhinagar | Web Development Company Gujarat | Kshetrajna Technologies";
+    }
   }, [currentPage]);
 
   const handleNewMessage = (msg: ContactMessage) => {
@@ -175,16 +192,22 @@ export default function App() {
     setApplications((prev) => prev.filter((a) => a.id !== id));
   };
 
+  const servicePages: Record<string, DetailedServicePage> = detailedServicePages;
+
+  const servicePageConfig = servicePages[currentPage];
+
   return (
     <div className="flex flex-col min-h-screen bg-slate-50 selection:bg-blue-100 selection:text-blue-900 text-slate-755 font-sans" id="kshetrajna-app-root">
-      {/* 1. Header Navigation */}
-      <Header
-        currentPage={currentPage}
-        setCurrentPage={setCurrentPage}
-        adminOpen={adminOpen}
-        setAdminOpen={setAdminOpen}
-        unreadCount={messages.length + applications.length}
-      />
+      {/* 1. Header Navigation (hidden on admin page) */}
+      {currentPage !== "admin-panel" && (
+        <Header
+          currentPage={currentPage}
+          setCurrentPage={setCurrentPage}
+          adminOpen={adminOpen}
+          setAdminOpen={setAdminOpen}
+          unreadCount={messages.length + applications.length}
+        />
+      )}
 
       {/* 2. Main Content Body Area */}
       <main className="flex-grow overflow-hidden relative">
@@ -206,12 +229,13 @@ export default function App() {
             {currentPage === "career" && <CareerView onApplySubmitted={handleNewApplication} />}
             {currentPage === "contact" && <ContactView onMessageSubmitted={handleNewMessage} />}
             {currentPage === "admin-panel" && <AdminPanel />}
+            {servicePageConfig && <ServiceLandingPage config={servicePageConfig} />}
           </motion.div>
         </AnimatePresence>
       </main>
 
-      {/* 3. Global Footer with disclosures */}
-      <Footer setCurrentPage={setCurrentPage} />
+      {/* 3. Global Footer with disclosures (hidden on admin page) */}
+      {currentPage !== "admin-panel" && <Footer setCurrentPage={setCurrentPage} />}
     </div>
   );
 }
