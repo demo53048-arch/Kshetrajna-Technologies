@@ -16,7 +16,7 @@ export default function HomeView({ setCurrentPage }: HomeViewProps) {
   return (
     <div className="bg-slate-50 text-slate-800" id="home-view-container">
       {/* 1. Epic Hero Section */}
-      <section className="relative overflow-hidden pt-20 pb-28 md:pt-28 md:pb-36 border-b border-slate-200 bg-white">
+      <section className="relative overflow-hidden pt-6 pb-12 md:pt-8 md:pb-20 border-b border-slate-200 bg-white">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(29,78,216,0.05),transparent_70%)]"></div>
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,rgba(59,130,246,0.04),transparent_60%)]"></div>
         
